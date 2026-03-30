@@ -18,8 +18,6 @@ AGENTS.md
 
 .codex/
 context.md
-v1.md
-v2.md
-v3.md
-v4.md
-v5.md
+codex.md
+v*.md
+

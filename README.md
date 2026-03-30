@@ -45,6 +45,13 @@ Current behavior:
 - writes both Markdown and JSON reports
 - can run in local CLI usage or GitHub Actions
 
+Current supported profile:
+- `nextjs-supabase-vercel`
+
+Future expansion direction:
+- careful multi-stack groundwork is now in progress internally
+- no second stack is publicly supported yet
+
 ## Recommendation meaning
 
 ### `ship: yes`
@@ -187,6 +194,7 @@ This project should be described honestly as:
 - a heuristic pre-deploy helper
 - a narrow scanner for Next.js + Supabase + Vercel
 - a review-support tool, not a proof-of-security tool
+- a project that is preparing for careful future multi-stack expansion without claiming it today
 
 ## Who this is for
 
@@ -218,13 +226,19 @@ Not ready to claim:
 - proof of security
 - mature broad-framework support
 - deep runtime correctness validation
+- public support for a second stack yet
 
 ## Development direction
 
 Near-term next steps:
 - exercise the hosted Action on a strong-match target-stack repo in addition to this weak-match self-scan
 - validate against more representative public repos
-- make only narrow documentation or ergonomics improvements based on real usage
+- keep multi-stack groundwork narrow and choose one careful second-stack direction before any broader rollout
+
+Internal v6 direction, not current support:
+- the current reusable core is the CLI, project loading, scoring, reporting, and rule-pack plumbing
+- the current stack-specific wedge remains Next.js + Supabase + Vercel only
+- the most likely next experimental direction is `Next.js + Firebase + Vercel`, but it is not implemented or supported yet
 
 Out of scope for now:
 - dashboard / SaaS expansion
