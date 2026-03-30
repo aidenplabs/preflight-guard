@@ -1,6 +1,6 @@
 # Preflight
 
-A heuristic pre-deploy checker for Next.js + Supabase + Vercel projects.
+A heuristic pre-deploy checker for Next.js + Supabase + Vercel projects, with a very narrow experimental Firebase prototype.
 
 It helps surface likely security and configuration risks before deployment.
 It does not prove security, auth correctness, RLS correctness, or deployment safety.
@@ -48,9 +48,10 @@ Current behavior:
 Current supported profile:
 - `nextjs-supabase-vercel`
 
-Future expansion direction:
-- careful multi-stack groundwork is now in progress internally
-- no second stack is publicly supported yet
+Experimental prototype:
+- `nextjs-firebase-vercel`
+- experimental means detection and a few checks exist, but it should not be treated as mature support
+- even a clean-looking Firebase prototype scan may still return `ship: caution` by design
 
 ## Recommendation meaning
 
@@ -75,6 +76,7 @@ The exact rule behavior may evolve, but the scanner currently focuses on narrow,
 - review-needed route or server-action auth patterns
 - stack/profile confidence
 - review-needed Supabase policy / RLS signals
+- experimental Firebase Admin / service-account misuse patterns
 
 ## Limitations
 
@@ -86,8 +88,9 @@ Important limits:
 - it does not validate runtime behavior
 - it may miss real issues
 - it may produce false positives
-- it is intentionally specific to Next.js + Supabase + Vercel
+- it is intentionally specific to a small set of Next.js + Vercel stack patterns
 - `ship: yes` must not be interpreted as proof of security
+- the experimental Firebase profile should not be treated as mature support yet
 
 ## Installation
 
@@ -175,26 +178,34 @@ What has been validated so far:
 - GitHub Action packaging structure
 - a real hosted GitHub Actions run on this repo
 - JSON / Markdown output for local and CI-oriented use
+- local prototype fixtures for:
+  - a clean-ish Firebase experimental case
+  - an unsafe Firebase experimental case
 
 Hosted Action note:
 - the hosted Action path has now been exercised in a real remote run
 - this repo self-scan returned `ship: caution`, which is expected because this repo is a weak-match scanner repo, not a strong Next.js + Supabase + Vercel target-stack app
 - that result validates the Action path, not the security of this repo
 
+Experimental Firebase note:
+- the Firebase prototype is currently fixture-validated only
+- a clean-ish Firebase fixture currently returns `ship: caution`, not `ship: yes`, because the prototype is intentionally not treated as mature support yet
+
 What is still incomplete:
 
 - public-repo validation sample size is still small
 - trust/scoring is still heuristic, not empirical proof
 - hosted validation has only been exercised on a weak-match self-scan so far, not yet on a strong-match production-like target repo
+- the Firebase prototype has only fixture-based validation so far and is intentionally not ready to call mature support
 
 ## Public positioning
 
 This project should be described honestly as:
 
 - a heuristic pre-deploy helper
-- a narrow scanner for Next.js + Supabase + Vercel
+- a narrow scanner led by Next.js + Supabase + Vercel
 - a review-support tool, not a proof-of-security tool
-- a project that is preparing for careful future multi-stack expansion without claiming it today
+- a project with one validated primary wedge and one very narrow experimental Firebase prototype
 
 ## Who this is for
 
@@ -218,6 +229,7 @@ Current status:
 - fixture-based validation exists
 - small public-repo validation pass exists
 - hosted GitHub Actions run exists and produced the expected weak-match `ship: caution` self-scan result on this repo
+- an experimental Firebase profile prototype exists
 
 Ready for:
 - basic public/open-source release, with risk
@@ -226,7 +238,7 @@ Not ready to claim:
 - proof of security
 - mature broad-framework support
 - deep runtime correctness validation
-- public support for a second stack yet
+- mature public support for the Firebase prototype yet
 
 ## Development direction
 
@@ -237,8 +249,8 @@ Near-term next steps:
 
 Internal v6 direction, not current support:
 - the current reusable core is the CLI, project loading, scoring, reporting, and rule-pack plumbing
-- the current stack-specific wedge remains Next.js + Supabase + Vercel only
-- the most likely next experimental direction is `Next.js + Firebase + Vercel`, but it is not implemented or supported yet
+- the current validated wedge remains Next.js + Supabase + Vercel
+- the Firebase prototype is experimental and intentionally narrower than the first wedge
 
 Out of scope for now:
 - dashboard / SaaS expansion
