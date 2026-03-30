@@ -7,6 +7,7 @@ import type {
   StackDetectionResult,
   StackSignal
 } from "./types.js";
+import { PRIMARY_PROFILE } from "./profiles.js";
 
 function findFile(files: ProjectFile[], matcher: (file: ProjectFile) => boolean): ProjectFile | undefined {
   return files.find(matcher);
@@ -204,7 +205,7 @@ export function detectStack(files: ProjectFile[], projectSignals: ProjectSignals
       : "Could not confidently detect the target stack from the current repo.";
 
   return {
-    profile: "nextjs-supabase-vercel",
+    profile: PRIMARY_PROFILE.id,
     overallConfidence,
     profileFit,
     components,

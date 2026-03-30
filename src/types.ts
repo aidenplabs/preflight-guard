@@ -4,6 +4,8 @@ export type Confidence = "confirmed" | "likely" | "review-needed";
 
 export type Category = "stack-detection" | "supabase-auth" | "env-secrets-config";
 
+export type ProfileId = "nextjs-supabase-vercel";
+
 export type ComponentConfidence = "high" | "medium" | "low";
 
 export type ProfileFit = "strong-match" | "partial-match" | "weak-match";
@@ -29,7 +31,7 @@ export interface StackComponent {
 }
 
 export interface StackDetectionResult {
-  profile: "nextjs-supabase-vercel";
+  profile: ProfileId;
   overallConfidence: ComponentConfidence;
   profileFit: ProfileFit;
   components: StackComponent[];

@@ -1,6 +1,6 @@
 import type { Finding, Severity } from "./types.js";
 import type { RuleContext } from "./types.js";
-import { getActiveRulePack } from "./rule-packs/registry.js";
+import { getRulePackForProfile } from "./rule-packs/registry.js";
 
 const severityRank: Record<Severity, number> = {
   Blocker: 0,
@@ -9,7 +9,7 @@ const severityRank: Record<Severity, number> = {
 };
 
 export function runRules(context: RuleContext): Finding[] {
-  return getActiveRulePack().rules
+  return getRulePackForProfile(context.stack.profile).rules
     .flatMap((rule) => rule.run(context))
     .filter((finding, index, findings) => findings.findIndex((candidate) => candidate.ruleId === finding.ruleId && candidate.filePath === finding.filePath) === index)
     .sort((left, right) => {
