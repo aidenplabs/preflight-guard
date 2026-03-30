@@ -188,7 +188,8 @@ Hosted Action note:
 - that result validates the Action path, not the security of this repo
 
 Experimental Firebase note:
-- the Firebase prototype is currently fixture-validated only
+- the Firebase prototype has now also been checked against a small public-repo sample
+- public Firebase validation is still small and should be treated as early signal, not maturity
 - a clean-ish Firebase fixture currently returns `ship: caution`, not `ship: yes`, because the prototype is intentionally not treated as mature support yet
 
 What is still incomplete:
@@ -196,7 +197,17 @@ What is still incomplete:
 - public-repo validation sample size is still small
 - trust/scoring is still heuristic, not empirical proof
 - hosted validation has only been exercised on a weak-match self-scan so far, not yet on a strong-match production-like target repo
-- the Firebase prototype has only fixture-based validation so far and is intentionally not ready to call mature support
+- the Firebase prototype is intentionally not ready to call mature support
+
+Firebase public-repo note:
+- a small public validation pass was run against repos including:
+  - `leerob/nextjs-vercel-firebase`
+  - `MartinXPN/nextjs-firebase-mui-starter`
+  - `valyndsilva/chatgpt-clone`
+  - `chirag-23/ChatGPT-Clone-Nextjs`
+- in that sample, Firebase profile detection was directionally useful, but the prototype stayed intentionally quiet and mostly returned `ship: caution` with no findings
+- one trust-tuning fix was made after validation: Vercel confidence no longer gets an extra boost from lockfiles or other package-manager artifacts
+- no clearly risky public Firebase repo with committed credential material was kept in the final sample, so unsafe Firebase validation is still mainly covered by the repo fixtures
 
 ## Public positioning
 
@@ -230,6 +241,7 @@ Current status:
 - small public-repo validation pass exists
 - hosted GitHub Actions run exists and produced the expected weak-match `ship: caution` self-scan result on this repo
 - an experimental Firebase profile prototype exists
+- a small public Firebase validation pass exists, but it still supports an experimental label rather than mature support
 
 Ready for:
 - basic public/open-source release, with risk
@@ -245,7 +257,7 @@ Not ready to claim:
 Near-term next steps:
 - exercise the hosted Action on a strong-match target-stack repo in addition to this weak-match self-scan
 - validate against more representative public repos
-- keep multi-stack groundwork narrow and choose one careful second-stack direction before any broader rollout
+- decide whether Firebase should continue as the second wedge based on more public-repo validation, or stay frozen as an experimental prototype
 
 Internal v6 direction, not current support:
 - the current reusable core is the CLI, project loading, scoring, reporting, and rule-pack plumbing

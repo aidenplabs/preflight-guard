@@ -174,10 +174,6 @@ function detectVercel(files: ProjectFile[], dependencies: Record<string, string>
     score += 1;
   }
 
-  if (projectSignals.vercelFiles.length > 0) {
-    score += 1;
-  }
-
   return buildComponent("Vercel", signals, score, 6);
 }
 
