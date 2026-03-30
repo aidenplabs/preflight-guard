@@ -209,6 +209,37 @@ Firebase public-repo note:
 - one trust-tuning fix was made after validation: Vercel confidence no longer gets an extra boost from lockfiles or other package-manager artifacts
 - no clearly risky public Firebase repo with committed credential material was kept in the final sample, so unsafe Firebase validation is still mainly covered by the repo fixtures
 
+## Support model
+
+This project uses a narrow support model for stack claims.
+
+A stack should only be called supported when it has:
+- hosted GitHub Action validation in stack-relevant conditions
+- stable clean and risky fixture coverage
+- public-repo validation beyond one or two examples
+- risky-case evidence that is not mostly dependent on synthetic fixtures
+- acceptable false-positive / false-negative comfort for beginner-facing use
+- clear docs that explain what the scanner can and cannot prove
+
+Current Firebase decision:
+- `nextjs-firebase-vercel` remains experimental
+- Firebase is promising enough to continue validating
+- Firebase is not ready for a supported claim yet
+
+Why Firebase remains experimental:
+- strong evidence:
+  - clean and risky Firebase fixtures exist
+  - public-repo detection is directionally useful
+  - the Action path has been prepared for Firebase-oriented validation
+- weaker evidence:
+  - public Firebase validation breadth is still small
+  - blocker behavior is still mostly demonstrated by fixtures
+  - hosted Firebase validation is still narrower than the primary supported wedge
+- missing evidence:
+  - broader public risky-case coverage
+  - stronger hosted validation on Firebase-leaning targets with reviewable outcomes
+  - enough confidence to treat a clean Firebase scan as more than an experimental caution signal
+
 ## Public positioning
 
 This project should be described honestly as:
@@ -241,7 +272,7 @@ Current status:
 - small public-repo validation pass exists
 - hosted GitHub Actions run exists and produced the expected weak-match `ship: caution` self-scan result on this repo
 - an experimental Firebase profile prototype exists
-- a small public Firebase validation pass exists, but it still supports an experimental label rather than mature support
+- a small public Firebase validation pass exists, and the current decision is to keep Firebase experimental but promising
 
 Ready for:
 - basic public/open-source release, with risk
@@ -250,14 +281,14 @@ Not ready to claim:
 - proof of security
 - mature broad-framework support
 - deep runtime correctness validation
-- mature public support for the Firebase prototype yet
+- supported status for the Firebase prototype yet
 
 ## Development direction
 
 Near-term next steps:
 - exercise the hosted Action on a strong-match target-stack repo in addition to this weak-match self-scan
 - validate against more representative public repos
-- decide whether Firebase should continue as the second wedge based on more public-repo validation, or stay frozen as an experimental prototype
+- decide whether Firebase can meet the support criteria above, rather than expanding it just because a second wedge is attractive
 
 Internal v6 direction, not current support:
 - the current reusable core is the CLI, project loading, scoring, reporting, and rule-pack plumbing
