@@ -12,6 +12,11 @@ export function collectProjectSignals(files: ProjectFile[]): ProjectSignals {
     supabaseFiles: files
       .filter((file) => file.path.startsWith("supabase/") || /@supabase\/supabase-js|SUPABASE_URL|NEXT_PUBLIC_SUPABASE|SUPABASE_SERVICE_ROLE_KEY/.test(file.content))
       .map((file) => file.path),
+    firebaseFiles: files
+      .filter((file) => file.path === "firebase.json"
+        || file.path === ".firebaserc"
+        || /firebase-admin|firebase\/app|firebase\/auth|firebase\/firestore|FIREBASE_|NEXT_PUBLIC_FIREBASE_|GOOGLE_APPLICATION_CREDENTIALS/.test(file.content))
+      .map((file) => file.path),
     vercelFiles: files
       .filter((file) => file.path === "vercel.json" || /process\.env\.VERCEL|VERCEL_URL|@vercel\//.test(file.content))
       .map((file) => file.path)

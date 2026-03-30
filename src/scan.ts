@@ -18,11 +18,15 @@ export interface ScanOptions {
 function buildLimitations(stack: ScanResult["stack"]): string[] {
   const limitations = [
     "This scanner uses heuristic static checks only. It does not prove that auth, RLS, or deployment config are safe.",
-    "The scanner is intentionally narrow and only looks for a small set of Next.js + Supabase + Vercel patterns.",
+    stack.supportStatus === "experimental"
+      ? "The detected profile is experimental. Its findings may still be useful, but a clean result should not be treated as a strong ship signal yet."
+      : "The scanner is intentionally narrow and only looks for a small set of stack-specific Next.js deployment patterns.",
     "Findings marked review-needed or likely still need human review against the real app behavior and deployment intent."
   ];
 
-  if (stack.overallConfidence !== "high") {
+  if (stack.supportStatus === "experimental") {
+    limitations.push("Even with high confidence detection, experimental profiles should not be treated as strong ship signals yet.");
+  } else if (stack.overallConfidence !== "high") {
     limitations.push("Target stack confidence is not high, so a clean result should not be treated as a strong ship signal.");
   }
 

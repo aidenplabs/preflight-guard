@@ -1,7 +1,7 @@
 import type { Finding, ScanResult, StackDetectionResult } from "./types.js";
 
 function hasReliableTargetStack(stack: StackDetectionResult): boolean {
-  return stack.profileFit === "strong-match" && stack.overallConfidence === "high";
+  return stack.supportStatus === "supported" && stack.profileFit === "strong-match" && stack.overallConfidence === "high";
 }
 
 export function decideShipRecommendation(findings: Finding[], stack: StackDetectionResult): ScanResult["shipRecommendation"] {

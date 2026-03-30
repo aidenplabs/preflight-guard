@@ -2,9 +2,11 @@ export type Severity = "Blocker" | "High" | "Medium";
 
 export type Confidence = "confirmed" | "likely" | "review-needed";
 
-export type Category = "stack-detection" | "supabase-auth" | "env-secrets-config";
+export type Category = "stack-detection" | "supabase-auth" | "firebase-auth-config" | "env-secrets-config";
 
-export type ProfileId = "nextjs-supabase-vercel";
+export type ProfileId = "nextjs-supabase-vercel" | "nextjs-firebase-vercel";
+
+export type ProfileSupportStatus = "supported" | "experimental";
 
 export type ComponentConfidence = "high" | "medium" | "low";
 
@@ -22,7 +24,7 @@ export interface StackSignal {
 }
 
 export interface StackComponent {
-  name: "Next.js" | "Supabase" | "Vercel";
+  name: "Next.js" | "Supabase" | "Firebase" | "Vercel";
   detected: boolean;
   confidence: ComponentConfidence;
   score: number;
@@ -32,6 +34,7 @@ export interface StackComponent {
 
 export interface StackDetectionResult {
   profile: ProfileId;
+  supportStatus: ProfileSupportStatus;
   overallConfidence: ComponentConfidence;
   profileFit: ProfileFit;
   components: StackComponent[];
@@ -46,6 +49,7 @@ export interface ProjectSignals {
   serverActionFiles: string[];
   clientFiles: string[];
   supabaseFiles: string[];
+  firebaseFiles: string[];
   vercelFiles: string[];
 }
 
