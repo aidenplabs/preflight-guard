@@ -150,6 +150,11 @@ A typical policy choice is:
 - use `fail-on: no` when you only want likely blockers to fail CI
 - use `fail-on: caution` when you want review-needed findings to fail CI too
 
+Practical guidance:
+- start with `fail-on: never` or `fail-on: no` when validating the Action on a repo that may be a weak-match or self-scan
+- expect `ship: caution` on repos that do not look like a strong Next.js + Supabase + Vercel target-stack match, even when no findings trigger
+- reserve `fail-on: caution` for repos where you expect the scanner to be evaluating a real target-stack app
+
 ## Validation summary
 
 What has been validated so far:
@@ -161,13 +166,19 @@ What has been validated so far:
   - weak-match case
 - public-repo validation on a small representative sample
 - GitHub Action packaging structure
+- a real hosted GitHub Actions run on this repo
 - JSON / Markdown output for local and CI-oriented use
+
+Hosted Action note:
+- the hosted Action path has now been exercised in a real remote run
+- this repo self-scan returned `ship: caution`, which is expected because this repo is a weak-match scanner repo, not a strong Next.js + Supabase + Vercel target-stack app
+- that result validates the Action path, not the security of this repo
 
 What is still incomplete:
 
-- real hosted GitHub Actions validation is still needed
 - public-repo validation sample size is still small
 - trust/scoring is still heuristic, not empirical proof
+- hosted validation has only been exercised on a weak-match self-scan so far, not yet on a strong-match production-like target repo
 
 ## Public positioning
 
@@ -198,6 +209,7 @@ Current status:
 - GitHub Action exists
 - fixture-based validation exists
 - small public-repo validation pass exists
+- hosted GitHub Actions run exists and produced the expected weak-match `ship: caution` self-scan result on this repo
 
 Ready for:
 - basic public/open-source release, with risk
@@ -210,7 +222,7 @@ Not ready to claim:
 ## Development direction
 
 Near-term next steps:
-- run the Action in a real hosted GitHub Actions workflow
+- exercise the hosted Action on a strong-match target-stack repo in addition to this weak-match self-scan
 - validate against more representative public repos
 - make only narrow documentation or ergonomics improvements based on real usage
 
@@ -224,4 +236,3 @@ Out of scope for now:
 ## License
 
 Add your preferred license here.
-
