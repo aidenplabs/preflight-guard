@@ -1,0 +1,35 @@
+name: Preflight Example
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Run preflight scanner
+        id: preflight
+        uses: ./
+        with:
+          path: .
+          output-dir: .preflight-ci
+          fail-on: caution
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-reports
+          path: |
+            .preflight-ci/preflight-report.json
+            .preflight-ci/preflight-report.md

@@ -1,0 +1,21 @@
+{
+  "name": "preflight-security-checker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CLI-first pre-deploy security checker for Next.js + Supabase + Vercel apps.",
+  "type": "module",
+  "bin": {
+    "preflight": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "scan": "tsx src/cli.ts scan",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

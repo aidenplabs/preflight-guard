@@ -1,0 +1,7 @@
+{
+  "name": "route-app",
+  "dependencies": {
+    "next": "15.2.1",
+    "@supabase/supabase-js": "2.49.1"
+  }
+}

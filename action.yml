@@ -1,0 +1,86 @@
+name: "Preflight Security Check"
+description: "Run the narrow Next.js + Supabase + Vercel pre-deploy security checker in GitHub Actions."
+inputs:
+  path:
+    description: "Repo path to scan."
+    required: false
+    default: "."
+  output-dir:
+    description: "Directory where Markdown and JSON reports should be written."
+    required: false
+    default: ".preflight-ci"
+  fail-on:
+    description: "Failure policy: caution, no, or never."
+    required: false
+    default: "caution"
+outputs:
+  ship-recommendation:
+    description: "Final ship recommendation from the JSON report."
+    value: ${{ steps.preflight_outputs.outputs.ship_recommendation }}
+  stack-confidence:
+    description: "Overall stack confidence from the JSON report."
+    value: ${{ steps.preflight_outputs.outputs.stack_confidence }}
+  profile-fit:
+    description: "Profile fit from the JSON report."
+    value: ${{ steps.preflight_outputs.outputs.profile_fit }}
+  exit-code:
+    description: "Scanner exit code after applying the selected fail-on policy."
+    value: ${{ steps.run_preflight.outputs.exit_code }}
+  json-report-path:
+    description: "Path to the generated JSON report."
+    value: ${{ steps.preflight_outputs.outputs.json_report_path }}
+  markdown-report-path:
+    description: "Path to the generated Markdown report."
+    value: ${{ steps.preflight_outputs.outputs.markdown_report_path }}
+runs:
+  using: "composite"
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Build CLI
+      shell: bash
+      run: npm run build
+
+    - name: Run preflight scanner
+      id: run_preflight
+      shell: bash
+      run: |
+        set +e
+        mkdir -p "${{ inputs.output-dir }}"
+        node dist/cli.js scan "${{ inputs.path }}" --output "${{ inputs.output-dir }}" --fail-on never
+        CLI_EXIT=$?
+        JSON_PATH="${{ inputs.output-dir }}/preflight-report.json"
+        MARKDOWN_PATH="${{ inputs.output-dir }}/preflight-report.md"
+        RECOMMENDATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.shipRecommendation);" "$JSON_PATH")
+        POLICY="${{ inputs.fail-on }}"
+        FINAL_EXIT=0
+        if [ "$POLICY" = "caution" ] && [ "$RECOMMENDATION" != "yes" ]; then
+          FINAL_EXIT=1
+        elif [ "$POLICY" = "no" ] && [ "$RECOMMENDATION" = "no" ]; then
+          FINAL_EXIT=1
+        fi
+        echo "json_path=$JSON_PATH" >> "$GITHUB_OUTPUT"
+        echo "markdown_path=$MARKDOWN_PATH" >> "$GITHUB_OUTPUT"
+        echo "exit_code=$FINAL_EXIT" >> "$GITHUB_OUTPUT"
+        exit $FINAL_EXIT
+
+    - name: Expose outputs
+      if: always()
+      id: preflight_outputs
+      shell: bash
+      run: |
+        JSON_PATH="${{ steps.run_preflight.outputs.json_path }}"
+        MARKDOWN_PATH="${{ steps.run_preflight.outputs.markdown_path }}"
+        SHIP_RECOMMENDATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.shipRecommendation);" "$JSON_PATH")
+        STACK_CONFIDENCE=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.overallConfidence);" "$JSON_PATH")
+        PROFILE_FIT=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.profileFit);" "$JSON_PATH")
+        echo "ship_recommendation=$SHIP_RECOMMENDATION" >> "$GITHUB_OUTPUT"
+        echo "stack_confidence=$STACK_CONFIDENCE" >> "$GITHUB_OUTPUT"
+        echo "profile_fit=$PROFILE_FIT" >> "$GITHUB_OUTPUT"
+        echo "json_report_path=$JSON_PATH" >> "$GITHUB_OUTPUT"
+        echo "markdown_report_path=$MARKDOWN_PATH" >> "$GITHUB_OUTPUT"
+        if [ -n "$GITHUB_STEP_SUMMARY" ] && [ -f "$MARKDOWN_PATH" ]; then
+          cat "$MARKDOWN_PATH" >> "$GITHUB_STEP_SUMMARY"
+        fi
