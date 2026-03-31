@@ -199,6 +199,13 @@ Example workflow:
 - run the Action
 - upload Markdown / JSON reports as artifacts
 
+Hosted public-target validation:
+- the repo also includes a manual workflow at `.github/workflows/public-target-validation.yml`
+- it accepts either `owner/repo` or a full `https://github.com/owner/repo` URL for a public GitHub repository
+- it clones that public repo on the runner and runs the same composite Action against it
+- this is meant for hosted validation and externally reviewable proof on public target repos
+- it is not a general remote-scanning service and it does not add support beyond the current supported combinations
+
 ## Example CI use
 
 A typical policy choice is:

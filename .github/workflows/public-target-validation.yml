@@ -1,0 +1,109 @@
+name: Preflight Public Target Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Public GitHub repo to scan: owner/repo or https://github.com/owner/repo"
+        required: true
+        type: string
+      fail-on:
+        description: "Failure policy for this hosted validation run."
+        required: false
+        default: "no"
+        type: choice
+        options:
+          - never
+          - no
+          - caution
+
+jobs:
+  validate-public-target:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Preflight repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Resolve public GitHub target
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          INPUT="${{ inputs.target }}"
+          INPUT="${INPUT%/}"
+          INPUT="${INPUT%.git}"
+
+          if [[ "$INPUT" =~ ^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)$ ]]; then
+            REPO="${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+          elif [[ "$INPUT" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            REPO="$INPUT"
+          else
+            echo "Target must be a public GitHub repo in owner/repo form or a full https://github.com/owner/repo URL." >&2
+            exit 1
+          fi
+
+          echo "repository=$REPO" >> "$GITHUB_OUTPUT"
+          echo "clone_url=https://github.com/$REPO.git" >> "$GITHUB_OUTPUT"
+          echo "target_dir=$RUNNER_TEMP/preflight-public-target" >> "$GITHUB_OUTPUT"
+
+      - name: Check public accessibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git ls-remote --exit-code "${{ steps.resolve.outputs.clone_url }}" HEAD >/dev/null 2>&1; then
+            echo "Could not access public repository: ${{ steps.resolve.outputs.repository }}" >&2
+            echo "This workflow only supports public GitHub repositories that can be cloned over anonymous HTTPS." >&2
+            exit 1
+          fi
+
+      - name: Clone public target repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET_DIR="${{ steps.resolve.outputs.target_dir }}"
+          rm -rf "$TARGET_DIR"
+          git clone --depth 1 "${{ steps.resolve.outputs.clone_url }}" "$TARGET_DIR"
+
+      - name: Run preflight scanner on public target
+        id: preflight
+        uses: ./
+        with:
+          path: ${{ steps.resolve.outputs.target_dir }}
+          output-dir: .preflight-ci
+          fail-on: ${{ inputs.fail-on }}
+
+      - name: Show hosted validation summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Public Target Validation"
+            echo ""
+            echo "Target repo: \`${{ steps.resolve.outputs.repository }}\`"
+            echo "ship: \`${{ steps.preflight.outputs.ship-recommendation }}\`"
+            echo "basis: \`${{ steps.preflight.outputs.recommendation-basis }}\`"
+            echo "combination: \`${{ steps.preflight.outputs.combination }}\`"
+            echo "support status: \`${{ steps.preflight.outputs.support-status }}\`"
+            echo "stack confidence: \`${{ steps.preflight.outputs.stack-confidence }}\`"
+            echo "profile fit: \`${{ steps.preflight.outputs.profile-fit }}\`"
+            echo ""
+            echo "This workflow is for public target-repo validation and hosted proof review."
+            echo "It does not prove that the target repo is secure or that any unsupported combination is now supported."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload public target reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-public-target-reports
+          path: |
+            .preflight-ci/preflight-report.json
+            .preflight-ci/preflight-report.md
