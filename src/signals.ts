@@ -24,6 +24,7 @@ export function collectProjectSignals(files: ProjectFile[]): ProjectSignals {
         || (/firebase-admin|firebase\/app|firebase\/auth|firebase\/firestore|FIREBASE_|NEXT_PUBLIC_FIREBASE_|GOOGLE_APPLICATION_CREDENTIALS/.test(file.content)
           && !isLockfile(file.path)))
       .map((file) => file.path),
+    clerkFiles: [],
     vercelFiles: files
       .filter((file) => file.path === "vercel.json"
         || (/process\.env\.VERCEL|VERCEL_URL|@vercel\//.test(file.content) && !isLockfile(file.path)))

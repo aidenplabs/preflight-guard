@@ -39,9 +39,9 @@ export function renderTerminalSummary(result: ScanResult): string {
   const highCount = result.findings.filter((finding) => finding.severity === "High").length;
   const mediumCount = result.findings.filter((finding) => finding.severity === "Medium").length;
 
-  const coverageNote = result.stack.overallConfidence === "high"
-    ? "Coverage note: target stack confidence is high for this scan, but the result is still heuristic rather than a proof of safety."
-    : "Coverage note: target stack confidence is partial or weak, so a clean result is not a strong safety signal.";
+  const coverageNote = result.stack.supportedCombination && result.stack.overallConfidence === "high"
+    ? "Coverage note: supported combination confidence is high for this scan, but the result is still heuristic rather than a proof of safety."
+    : "Coverage note: supported-combination confidence is partial or weak, or no supported pack combination was found, so a clean result is not a strong safety signal.";
 
   const findingLines = result.findings.length === 0
     ? ["No findings triggered."]
@@ -50,14 +50,19 @@ export function renderTerminalSummary(result: ScanResult): string {
   return [
     "Preflight Security Check",
     `Scanned path: ${result.summary.scannedPath}`,
-    `Target profile: ${result.stack.profile}`,
-    `Profile status: ${result.stack.supportStatus}`,
+    `Base profile: ${result.stack.profile}`,
+    `Detected combination: ${result.stack.combination}`,
+    `Combination label: ${result.stack.combinationLabel}`,
+    `Active packs: ${result.stack.activePacks.length > 0 ? result.stack.activePacks.join(", ") : "none"}`,
+    `Combination status: ${result.stack.supportStatus}`,
     `Stack confidence: ${result.stack.overallConfidence}`,
     `Profile fit: ${result.stack.profileFit}`,
     `Detected stack: ${result.stack.components.map((component) => `${component.name}=${component.detected ? component.confidence : "not-detected"}`).join(", ")}`,
     coverageNote,
     `Findings: ${result.findings.length} total (${blockerCount} Blocker, ${highCount} High, ${mediumCount} Medium)`,
     `Ship recommendation: ${result.shipRecommendation}`,
+    `Recommendation basis: ${result.recommendationBasis}`,
+    `Recommendation note: ${result.recommendationSummary}`,
     "",
     ...findingLines
   ].join("\n");
@@ -82,12 +87,15 @@ export function renderMarkdownReport(result: ScanResult): string {
     `- Files scanned: ${result.summary.fileCount}`,
     "",
     "## Detected Stack",
-    `- Target profile: \`${result.stack.profile}\``,
-    `- Profile status: \`${result.stack.supportStatus}\``,
+    `- Base profile: \`${result.stack.profile}\``,
+    `- Detected combination: \`${result.stack.combination}\``,
+    `- Combination label: \`${result.stack.combinationLabel}\``,
+    `- Active packs: ${result.stack.activePacks.length > 0 ? result.stack.activePacks.map((pack) => `\`${pack}\``).join(", ") : "none"}`,
+    `- Combination status: \`${result.stack.supportStatus}\``,
     `- Overall confidence: \`${result.stack.overallConfidence}\``,
     `- Profile fit: \`${result.stack.profileFit}\``,
     `- Summary: ${result.stack.summary}`,
-    `- Coverage note: ${result.stack.overallConfidence === "high" ? "Target stack confidence is high enough for a useful clean scan signal, but the scan remains heuristic rather than a proof of safety." : "Target stack confidence is partial or weak, so a clean scan should be treated cautiously."}`,
+    `- Coverage note: ${result.stack.supportedCombination && result.stack.overallConfidence === "high" ? "Supported-combination confidence is high enough for a useful clean scan signal, but the scan remains heuristic rather than a proof of safety." : "Supported-combination confidence is partial or weak, or no supported pack combination was found, so a clean scan should be treated cautiously."}`,
     ...stackLines,
     "",
     "## Findings By Severity"
@@ -112,6 +120,8 @@ export function renderMarkdownReport(result: ScanResult): string {
   sections.push("");
   sections.push("## Final Recommendation");
   sections.push(`- Ship: **${result.shipRecommendation}**`);
+  sections.push(`- Recommendation basis: \`${result.recommendationBasis}\``);
+  sections.push(`- Recommendation note: ${result.recommendationSummary}`);
   sections.push("");
   sections.push("## Limitations");
   for (const limitation of result.limitations) {

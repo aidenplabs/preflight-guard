@@ -1,5 +1,5 @@
 name: "Preflight Security Check"
-description: "Run the narrow Next.js + Supabase + Vercel pre-deploy security checker in GitHub Actions."
+description: "Run the narrow Next.js-centered pre-deploy checker for the currently supported Next.js + Vercel / Supabase combinations in GitHub Actions."
 inputs:
   path:
     description: "Repo path to scan."
@@ -12,7 +12,7 @@ inputs:
   fail-on:
     description: "Failure policy: caution, no, or never."
     required: false
-    default: "caution"
+    default: "no"
 outputs:
   ship-recommendation:
     description: "Final ship recommendation from the JSON report."
@@ -26,6 +26,15 @@ outputs:
   exit-code:
     description: "Scanner exit code after applying the selected fail-on policy."
     value: ${{ steps.run_preflight.outputs.exit_code }}
+  recommendation-basis:
+    description: "Recommendation basis from the JSON report."
+    value: ${{ steps.preflight_outputs.outputs.recommendation_basis }}
+  support-status:
+    description: "Support status for the detected combination."
+    value: ${{ steps.preflight_outputs.outputs.support_status }}
+  combination:
+    description: "Detected supported/review-only combination id."
+    value: ${{ steps.preflight_outputs.outputs.combination }}
   json-report-path:
     description: "Path to the generated JSON report."
     value: ${{ steps.preflight_outputs.outputs.json_report_path }}
@@ -49,22 +58,14 @@ runs:
       run: |
         set +e
         mkdir -p "${{ inputs.output-dir }}"
-        node dist/cli.js scan "${{ inputs.path }}" --output "${{ inputs.output-dir }}" --fail-on never
+        node dist/cli.js scan "${{ inputs.path }}" --output "${{ inputs.output-dir }}" --fail-on "${{ inputs.fail-on }}"
         CLI_EXIT=$?
         JSON_PATH="${{ inputs.output-dir }}/preflight-report.json"
         MARKDOWN_PATH="${{ inputs.output-dir }}/preflight-report.md"
-        RECOMMENDATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.shipRecommendation);" "$JSON_PATH")
-        POLICY="${{ inputs.fail-on }}"
-        FINAL_EXIT=0
-        if [ "$POLICY" = "caution" ] && [ "$RECOMMENDATION" != "yes" ]; then
-          FINAL_EXIT=1
-        elif [ "$POLICY" = "no" ] && [ "$RECOMMENDATION" = "no" ]; then
-          FINAL_EXIT=1
-        fi
         echo "json_path=$JSON_PATH" >> "$GITHUB_OUTPUT"
         echo "markdown_path=$MARKDOWN_PATH" >> "$GITHUB_OUTPUT"
-        echo "exit_code=$FINAL_EXIT" >> "$GITHUB_OUTPUT"
-        exit $FINAL_EXIT
+        echo "exit_code=$CLI_EXIT" >> "$GITHUB_OUTPUT"
+        exit $CLI_EXIT
 
     - name: Expose outputs
       if: always()
@@ -74,11 +75,17 @@ runs:
         JSON_PATH="${{ steps.run_preflight.outputs.json_path }}"
         MARKDOWN_PATH="${{ steps.run_preflight.outputs.markdown_path }}"
         SHIP_RECOMMENDATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.shipRecommendation);" "$JSON_PATH")
+        RECOMMENDATION_BASIS=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.recommendationBasis);" "$JSON_PATH")
         STACK_CONFIDENCE=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.overallConfidence);" "$JSON_PATH")
         PROFILE_FIT=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.profileFit);" "$JSON_PATH")
+        SUPPORT_STATUS=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.supportStatus);" "$JSON_PATH")
+        COMBINATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.combination);" "$JSON_PATH")
         echo "ship_recommendation=$SHIP_RECOMMENDATION" >> "$GITHUB_OUTPUT"
+        echo "recommendation_basis=$RECOMMENDATION_BASIS" >> "$GITHUB_OUTPUT"
         echo "stack_confidence=$STACK_CONFIDENCE" >> "$GITHUB_OUTPUT"
         echo "profile_fit=$PROFILE_FIT" >> "$GITHUB_OUTPUT"
+        echo "support_status=$SUPPORT_STATUS" >> "$GITHUB_OUTPUT"
+        echo "combination=$COMBINATION" >> "$GITHUB_OUTPUT"
         echo "json_report_path=$JSON_PATH" >> "$GITHUB_OUTPUT"
         echo "markdown_report_path=$MARKDOWN_PATH" >> "$GITHUB_OUTPUT"
         if [ -n "$GITHUB_STEP_SUMMARY" ] && [ -f "$MARKDOWN_PATH" ]; then

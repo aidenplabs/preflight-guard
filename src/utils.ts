@@ -33,10 +33,18 @@ export function normalizeForMatch(filePath: string): string {
   return `/${filePath.replaceAll("\\", "/")}`;
 }
 
+function isClientCodeFile(filePath: string): boolean {
+  return /\.(js|jsx|ts|tsx|mjs|cjs|mts|cts)$/.test(filePath);
+}
+
 export function isClientReachableFile(file: ProjectFile): boolean {
   const path = normalizeForMatch(file.path);
   const hasUseClientDirective = /^\s*['"]use client['"]/m.test(file.content);
   const hasClientFileName = /\.client\.(js|jsx|ts|tsx|mjs|cjs)$/.test(file.path);
+
+  if (!isClientCodeFile(file.path)) {
+    return false;
+  }
 
   if (path.includes("/pages/api/") || path.includes("/app/api/") || path.includes("/src/pages/api/") || path.includes("/src/app/api/")) {
     return false;

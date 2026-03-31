@@ -1,14 +1,15 @@
 import type {
+  CombinationId,
   ComponentConfidence,
+  PackId,
   ProfileFit,
-  ProfileId,
   ProjectFile,
   ProjectSignals,
   StackComponent,
   StackDetectionResult,
   StackSignal
 } from "./types.js";
-import { getProfileInfo } from "./profiles.js";
+import { CORE_PROFILE, getCombinationInfo } from "./profiles.js";
 
 function findFile(files: ProjectFile[], matcher: (file: ProjectFile) => boolean): ProjectFile | undefined {
   return files.find(matcher);
@@ -127,40 +128,18 @@ function detectSupabase(files: ProjectFile[], dependencies: Record<string, strin
   return buildComponent("Supabase", signals, score, 9);
 }
 
-function detectFirebase(files: ProjectFile[], dependencies: Record<string, string>, projectSignals: ProjectSignals): StackComponent {
-  const signals: StackSignal[] = [];
-  let score = 0;
-
-  if (dependencies.firebase || dependencies["firebase-admin"]) {
-    const version = dependencies.firebase ?? dependencies["firebase-admin"];
-    signals.push({ signal: "dependency", evidence: `package.json includes Firebase dependency (${version})` });
-    score += 3;
-  }
-
-  if (findFile(files, (file) => file.path === "firebase.json" || file.path === ".firebaserc")) {
-    signals.push({ signal: "config", evidence: "Firebase config file found" });
-    score += 2;
-  }
-
-  if (findFile(files, (file) => isCodeOrConfigFile(file) && isLikelyAppFile(file) && /firebase-admin|firebase\/app|firebase\/auth|firebase\/firestore|initializeApp\(|getApps\(|getApp\(/.test(file.content))) {
-    signals.push({ signal: "code", evidence: "Firebase SDK imports or initialization found in code" });
-    score += 3;
-  }
-
-  if (projectSignals.envFiles.some((filePath) => files.find((file) => file.path === filePath && /NEXT_PUBLIC_FIREBASE_|FIREBASE_PRIVATE_KEY|FIREBASE_CLIENT_EMAIL|FIREBASE_PROJECT_ID/.test(file.content)))) {
-    signals.push({ signal: "env", evidence: "Firebase-related env variables found" });
-    score += 1;
-  }
-
-  return buildComponent("Firebase", signals, score, 9);
-}
-
 function detectVercel(files: ProjectFile[], dependencies: Record<string, string>, projectSignals: ProjectSignals): StackComponent {
   const signals: StackSignal[] = [];
   let score = 0;
+  const vercelScopedDependencies = Object.keys(dependencies).filter((dependency) => dependency.startsWith("@vercel/"));
 
   if (dependencies.vercel) {
     signals.push({ signal: "dependency", evidence: `package.json includes vercel@${dependencies.vercel}` });
+    score += 2;
+  }
+
+  if (vercelScopedDependencies.length > 0) {
+    signals.push({ signal: "dependency", evidence: `package.json includes Vercel package(s): ${vercelScopedDependencies.join(", ")}` });
     score += 2;
   }
 
@@ -177,17 +156,15 @@ function detectVercel(files: ProjectFile[], dependencies: Record<string, string>
   return buildComponent("Vercel", signals, score, 6);
 }
 
-function getProfileFit(components: StackComponent[]): ProfileFit {
+function getCombinationFit(components: StackComponent[]): ProfileFit {
   const next = components.find((component) => component.name === "Next.js");
-  const backend = components.find((component) => component.name === "Supabase" || component.name === "Firebase");
-  const vercel = components.find((component) => component.name === "Vercel");
   const detectedCount = components.filter((component) => component.detected).length;
 
-  if (next?.detected && backend?.detected && (vercel?.detected || vercel?.confidence === "medium")) {
+  if (components.every((component) => component.detected)) {
     return "strong-match";
   }
 
-  if (detectedCount >= 2) {
+  if (next?.detected && detectedCount >= Math.max(1, components.length - 1)) {
     return "partial-match";
   }
 
@@ -198,7 +175,7 @@ function getOverallConfidence(components: StackComponent[], profileFit: ProfileF
   const highCount = components.filter((component) => component.confidence === "high").length;
   const mediumOrHigherCount = components.filter((component) => component.confidence !== "low").length;
 
-  if (profileFit === "strong-match" && highCount >= 1 && mediumOrHigherCount >= 2) {
+  if (profileFit === "strong-match" && highCount >= 1 && mediumOrHigherCount === components.length) {
     return "high";
   }
 
@@ -209,8 +186,9 @@ function getOverallConfidence(components: StackComponent[], profileFit: ProfileF
   return "low";
 }
 
-interface CandidateProfile {
-  profile: ProfileId;
+interface CandidateCombination {
+  combination: CombinationId;
+  activePacks: PackId[];
   components: StackComponent[];
   profileFit: ProfileFit;
   overallConfidence: ComponentConfidence;
@@ -239,7 +217,7 @@ function confidenceRank(confidence: ComponentConfidence): number {
   }
 }
 
-function compareCandidates(left: CandidateProfile, right: CandidateProfile): number {
+function compareCandidates(left: CandidateCombination, right: CandidateCombination): number {
   if (profileFitRank(left.profileFit) !== profileFitRank(right.profileFit)) {
     return profileFitRank(left.profileFit) - profileFitRank(right.profileFit);
   }
@@ -252,7 +230,7 @@ function compareCandidates(left: CandidateProfile, right: CandidateProfile): num
     return left.totalScore - right.totalScore;
   }
 
-  return left.profile === "nextjs-supabase-vercel" ? 1 : -1;
+  return left.activePacks.length - right.activePacks.length;
 }
 
 export function detectStack(files: ProjectFile[], projectSignals: ProjectSignals): StackDetectionResult {
@@ -261,23 +239,35 @@ export function detectStack(files: ProjectFile[], projectSignals: ProjectSignals
 
   const nextComponent = detectNext(files, dependencies, projectSignals);
   const supabaseComponent = detectSupabase(files, dependencies, projectSignals);
-  const firebaseComponent = detectFirebase(files, dependencies, projectSignals);
   const vercelComponent = detectVercel(files, dependencies, projectSignals);
 
-  const candidateSeeds: Array<Pick<CandidateProfile, "profile" | "components">> = [
+  const candidateSeeds: Array<Pick<CandidateCombination, "combination" | "activePacks" | "components">> = [
     {
-      profile: "nextjs-supabase-vercel",
-      components: [nextComponent, supabaseComponent, vercelComponent]
+      combination: "nextjs-core",
+      activePacks: [],
+      components: [nextComponent]
     },
     {
-      profile: "nextjs-firebase-vercel",
-      components: [nextComponent, firebaseComponent, vercelComponent]
+      combination: "nextjs-core+supabase-pack",
+      activePacks: ["supabase-pack"],
+      components: [nextComponent, supabaseComponent]
+    },
+    {
+      combination: "nextjs-core+vercel-pack",
+      activePacks: ["vercel-pack"],
+      components: [nextComponent, vercelComponent]
+    },
+    {
+      combination: "nextjs-core+supabase-pack+vercel-pack",
+      activePacks: ["supabase-pack", "vercel-pack"],
+      components: [nextComponent, supabaseComponent, vercelComponent]
     }
   ];
 
-  const candidates: CandidateProfile[] = candidateSeeds.map((candidate) => {
-    const profileFit = getProfileFit(candidate.components);
+  const candidates: CandidateCombination[] = candidateSeeds.map((candidate) => {
+    const profileFit = getCombinationFit(candidate.components);
     const overallConfidence = getOverallConfidence(candidate.components, profileFit);
+
     return {
       ...candidate,
       profileFit,
@@ -287,20 +277,24 @@ export function detectStack(files: ProjectFile[], projectSignals: ProjectSignals
   });
 
   const selected = candidates.reduce((best, candidate) => compareCandidates(candidate, best) > 0 ? candidate : best, candidates[0]);
-  const profileInfo = getProfileInfo(selected.profile);
+  const combinationInfo = getCombinationInfo(selected.combination);
   const detectedNames = selected.components.filter((component) => component.detected).map((component) => component.name);
   const summary = selected.profileFit === "strong-match"
-    ? `Detected a strong ${profileInfo.label} profile match with ${selected.overallConfidence} confidence.`
+    ? `Detected a strong ${combinationInfo.label} combination match with ${selected.overallConfidence} confidence.`
     : detectedNames.length > 0
-      ? `Detected a ${selected.profileFit} for ${profileInfo.label} based on ${detectedNames.join(", ")} signals.`
-      : `Could not confidently detect ${profileInfo.label} from the current repo.`;
+      ? `Detected a ${selected.profileFit} for ${combinationInfo.label} based on ${detectedNames.join(", ")} signals.`
+      : `Could not confidently detect ${combinationInfo.label} from the current repo.`;
 
   return {
-    profile: selected.profile,
-    supportStatus: profileInfo.supportStatus,
+    profile: CORE_PROFILE.id,
+    activePacks: selected.activePacks,
+    combination: selected.combination,
+    combinationLabel: combinationInfo.label,
+    supportedCombination: combinationInfo.supportStatus === "supported",
+    supportStatus: combinationInfo.supportStatus,
     overallConfidence: selected.overallConfidence,
     profileFit: selected.profileFit,
-    components: selected.components,
+    components: [nextComponent, supabaseComponent, vercelComponent],
     summary
   };
 }

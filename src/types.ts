@@ -2,15 +2,31 @@ export type Severity = "Blocker" | "High" | "Medium";
 
 export type Confidence = "confirmed" | "likely" | "review-needed";
 
-export type Category = "stack-detection" | "supabase-auth" | "firebase-auth-config" | "env-secrets-config";
+export type Category = "stack-detection" | "supabase-auth" | "firebase-auth-config" | "clerk-auth-config" | "env-secrets-config";
 
-export type ProfileId = "nextjs-supabase-vercel" | "nextjs-firebase-vercel";
+export type ProfileId = "nextjs-core";
 
-export type ProfileSupportStatus = "supported" | "experimental";
+export type PackId = "nextjs-core" | "supabase-pack" | "vercel-pack";
+
+export type CombinationId =
+  | "nextjs-core"
+  | "nextjs-core+supabase-pack"
+  | "nextjs-core+vercel-pack"
+  | "nextjs-core+supabase-pack+vercel-pack";
+
+export type ProfileSupportStatus = "supported" | "review-only";
 
 export type ComponentConfidence = "high" | "medium" | "low";
 
 export type ProfileFit = "strong-match" | "partial-match" | "weak-match";
+
+export type RecommendationBasis =
+  | "clean-supported-scan"
+  | "review-findings"
+  | "elevated-review-findings"
+  | "insufficient-supported-confidence"
+  | "confirmed-blocker-findings"
+  | "multiple-high-findings";
 
 export interface ProjectFile {
   path: string;
@@ -24,7 +40,7 @@ export interface StackSignal {
 }
 
 export interface StackComponent {
-  name: "Next.js" | "Supabase" | "Firebase" | "Vercel";
+  name: "Next.js" | "Supabase" | "Firebase" | "Clerk" | "Vercel";
   detected: boolean;
   confidence: ComponentConfidence;
   score: number;
@@ -34,6 +50,10 @@ export interface StackComponent {
 
 export interface StackDetectionResult {
   profile: ProfileId;
+  activePacks: PackId[];
+  combination: CombinationId;
+  combinationLabel: string;
+  supportedCombination: boolean;
   supportStatus: ProfileSupportStatus;
   overallConfidence: ComponentConfidence;
   profileFit: ProfileFit;
@@ -50,6 +70,7 @@ export interface ProjectSignals {
   clientFiles: string[];
   supabaseFiles: string[];
   firebaseFiles: string[];
+  clerkFiles: string[];
   vercelFiles: string[];
 }
 
@@ -82,7 +103,7 @@ export interface Rule {
 
 export interface RulePackDefinition {
   id: string;
-  profile: StackDetectionResult["profile"];
+  pack: PackId;
   rules: Rule[];
 }
 
@@ -98,6 +119,8 @@ export interface ScanResult {
   stack: StackDetectionResult;
   findings: Finding[];
   shipRecommendation: "yes" | "caution" | "no";
+  recommendationBasis: RecommendationBasis;
+  recommendationSummary: string;
   limitations: string[];
   exitCode: number;
 }

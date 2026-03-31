@@ -2,7 +2,7 @@
   "name": "preflight-security-checker",
   "version": "0.1.0",
   "private": true,
-  "description": "CLI-first pre-deploy security checker for Next.js + Supabase + Vercel apps.",
+  "description": "CLI-first heuristic pre-deploy checker centered on Next.js, with deeper Supabase and Vercel pack support.",
   "type": "module",
   "bin": {
     "preflight": "./dist/cli.js"

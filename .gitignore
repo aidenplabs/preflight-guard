@@ -15,9 +15,22 @@ preflight-report.md
 .DS_Store
 
 AGENTS.md
+rules.md
 
 .codex/
 context.md
 codex.md
 v*.md
 
+# local-only internal workflow / planning clutter
+notes/
+scratch/
+tmp/
+
+# frozen experimental legacy files that are not part of the active public product
+.github/workflows/firebase-experimental-validation.yml
+.github/workflows/clerk-experimental-validation.yml
+fixtures/v7/
+fixtures/v14/
+src/rule-packs/nextjs-firebase-vercel.ts
+src/rule-packs/nextjs-clerk-vercel.ts

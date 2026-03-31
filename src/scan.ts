@@ -18,16 +18,16 @@ export interface ScanOptions {
 function buildLimitations(stack: ScanResult["stack"]): string[] {
   const limitations = [
     "This scanner uses heuristic static checks only. It does not prove that auth, RLS, or deployment config are safe.",
-    stack.supportStatus === "experimental"
-      ? "The detected profile is experimental. Its findings may still be useful, but a clean result should not be treated as a strong ship signal yet."
-      : "The scanner is intentionally narrow and only looks for a small set of stack-specific Next.js deployment patterns.",
+    stack.supportedCombination
+      ? "The detected Next.js combination is inside the current supported model, but the scan still only covers a narrow set of static patterns."
+      : "The detected Next.js setup is outside the current supported combination set, so a clean result should be treated as review-only rather than a strong ship signal.",
     "Findings marked review-needed or likely still need human review against the real app behavior and deployment intent."
   ];
 
-  if (stack.supportStatus === "experimental") {
-    limitations.push("Even with high confidence detection, experimental profiles should not be treated as strong ship signals yet.");
+  if (!stack.supportedCombination) {
+    limitations.push("Next.js-only scans without a supported pack combination are useful for orientation, but not yet strong ship signals.");
   } else if (stack.overallConfidence !== "high") {
-    limitations.push("Target stack confidence is not high, so a clean result should not be treated as a strong ship signal.");
+    limitations.push("Detected pack confidence is not high, so a clean result should not be treated as a strong ship signal.");
   }
 
   return limitations;
@@ -50,7 +50,8 @@ export async function runScan(options: ScanOptions): Promise<{
   const summary = buildProjectSummary(rootPath, files.length);
   const stack = detectStack(files, signals);
   const findings = runRules({ rootPath, files, stack, signals });
-  const shipRecommendation = decideShipRecommendation(findings, stack);
+  const recommendationDecision = decideShipRecommendation(findings, stack);
+  const shipRecommendation = recommendationDecision.recommendation;
   const defaultExitCode = getExitCode(shipRecommendation);
   const failOn = options.failOn ?? "caution";
   const exitCode = failOn === "never"
@@ -65,6 +66,8 @@ export async function runScan(options: ScanOptions): Promise<{
     stack,
     findings,
     shipRecommendation,
+    recommendationBasis: recommendationDecision.basis,
+    recommendationSummary: recommendationDecision.summary,
     limitations: buildLimitations(stack),
     exitCode
   };

@@ -1,6 +1,6 @@
 # Preflight
 
-A heuristic pre-deploy checker for Next.js + Supabase + Vercel projects, with a very narrow experimental Firebase prototype.
+A heuristic pre-deploy checker centered on Next.js, with deeper Supabase and Vercel pack support.
 
 It helps surface likely security and configuration risks before deployment.
 It does not prove security, auth correctness, RLS correctness, or deployment safety.
@@ -10,7 +10,7 @@ It does not prove security, auth correctness, RLS correctness, or deployment saf
 - a narrow CLI + GitHub Action
 - a static heuristic scanner
 - a beginner-friendly preflight review tool
-- focused on Next.js + Supabase + Vercel projects
+- focused on Next.js apps, with deeper checks when Supabase and/or Vercel are present
 
 ## What it is not
 
@@ -29,10 +29,12 @@ This tool is meant to catch common risky patterns early and make the output easy
 
 The current scanner is intentionally narrow.
 
-Target stack:
-- Next.js
-- Supabase
-- Vercel
+Base profile:
+- `nextjs-core`
+
+Active packs:
+- `supabase-pack`
+- `vercel-pack`
 
 Current behavior:
 - scans a local repository
@@ -45,27 +47,54 @@ Current behavior:
 - writes both Markdown and JSON reports
 - can run in local CLI usage or GitHub Actions
 
-Current supported profile:
-- `nextjs-supabase-vercel`
+Current supported combinations:
+- `Next.js + Vercel`
+- `Next.js + Supabase`
+- `Next.js + Supabase + Vercel`
 
-Experimental prototype:
-- `nextjs-firebase-vercel`
-- experimental means detection and a few checks exist, but it should not be treated as mature support
-- even a clean-looking Firebase prototype scan may still return `ship: caution` by design
+Current review-only state:
+- `nextjs-core` alone is detectable, but it is not yet a `ship: yes` support target by itself
 
 ## Recommendation meaning
 
 ### `ship: yes`
-No current heuristic findings were found on a strong-match target-stack repo.
+No current heuristic findings were found on a strong-match supported Next.js combination.
 
 This does **not** mean the project is secure.
-It only means the current narrow checks did not find a blocker or review-needed issue in a repo that looks like a strong fit for the intended stack.
+It only means the current narrow checks did not find a blocker or review-needed issue in a repo that looks like a strong fit for a currently supported combination.
 
 ### `ship: caution`
-The scanner found review-needed issues, weak stack confidence, or conditions that should be checked manually before deployment.
+`ship: caution` has two meanings under the modular model:
+
+- review caution: the scanner found specific review-needed issues that should be checked before deployment
+- confidence caution: the scan stayed clean, but the detected combination is not support-grade enough for `ship: yes`
+
+Those are not the same situation.
+A caution with findings is stronger than a clean weak-match caution.
+Some review cautions are also stronger than others:
+
+- a single medium review signal is a softer caution
+- repeated route/auth cautions or higher-severity review signals are a stronger caution
+
+The JSON report exposes this through `recommendationBasis` and `recommendationSummary`.
 
 ### `ship: no`
 The scanner found a likely blocker-level issue based on its current heuristic checks.
+
+## How To Read Supabase Cautions
+
+Most current Supabase cautions are review-oriented rather than proof of a broken app.
+
+Common examples:
+- `SB003`: a route or server action looks sensitive, but the tool did not find a clear local auth check
+- `SB004`: Supabase was detected, but the repo does not show clear RLS policy signals
+
+Interpret these as:
+- review your auth or policy assumptions before shipping
+- not as automatic proof that auth or RLS is broken
+
+If the scanner reaches `ship: no`, that is a stronger signal than these review-oriented Supabase cautions.
+A single `SB004` caution is also softer than repeated `SB003` route/action cautions across multiple files.
 
 ## Current checks
 
@@ -74,9 +103,13 @@ The exact rule behavior may evolve, but the scanner currently focuses on narrow,
 - risky public environment variable exposure
 - likely service-role exposure patterns
 - review-needed route or server-action auth patterns
-- stack/profile confidence
+- Next.js base and pack confidence
 - review-needed Supabase policy / RLS signals
-- experimental Firebase Admin / service-account misuse patterns
+
+Current pack depth:
+- `nextjs-core` identifies the base Next.js target and keeps non-supported combinations from being over-read
+- `supabase-pack` currently provides the deeper rule coverage in the active model
+- `vercel-pack` currently contributes detection/context and combination confidence more than dedicated findings
 
 ## Limitations
 
@@ -88,9 +121,8 @@ Important limits:
 - it does not validate runtime behavior
 - it may miss real issues
 - it may produce false positives
-- it is intentionally specific to a small set of Next.js + Vercel stack patterns
+- it is intentionally specific to a narrow set of Next.js deployment patterns
 - `ship: yes` must not be interpreted as proof of security
-- the experimental Firebase profile should not be treated as mature support yet
 
 ## Installation
 
@@ -135,16 +167,31 @@ The scanner writes:
 The JSON report includes stable automation-oriented fields such as:
 - `schemaVersion`
 - `shipRecommendation`
+- `recommendationBasis`
+- `recommendationSummary`
 - `exitCode`
+
+The Action also exposes CI-friendly outputs such as:
+- `ship-recommendation`
+- `recommendation-basis`
+- `combination`
+- `support-status`
+- `stack-confidence`
+- `profile-fit`
 
 The Markdown report is intended for human review.
 The JSON report is intended for automation and CI integration.
+
+Checked-in sample report note:
+- the sample report in `examples/` intentionally shows a strong-match supported caution case
+- it is there to demonstrate how a review-oriented caution should read, not to imply that every supported repo should default to `ship: caution`
 
 ## GitHub Action
 
 This repo includes a composite GitHub Action in `action.yml`.
 
 It is designed to reuse the existing CLI instead of creating a separate scanning path.
+It now follows the CLI's own `--fail-on` behavior directly instead of recomputing failure policy outside the scanner.
 
 Example workflow:
 - checkout repo
@@ -160,60 +207,75 @@ A typical policy choice is:
 - use `fail-on: no` when you only want likely blockers to fail CI
 - use `fail-on: caution` when you want review-needed findings to fail CI too
 
+Current Action default:
+- the composite Action now defaults to `fail-on: no`
+- this is intentionally less aggressive than `caution`, because some supported-combo cautions are still review-oriented rather than blocker-like
+
 Practical guidance:
-- start with `fail-on: never` or `fail-on: no` when validating the Action on a repo that may be a weak-match or self-scan
-- expect `ship: caution` on repos that do not look like a strong Next.js + Supabase + Vercel target-stack match, even when no findings trigger
-- reserve `fail-on: caution` for repos where you expect the scanner to be evaluating a real target-stack app
+- start with `fail-on: never` or `fail-on: no` when validating the Action on a repo that may be outside the supported combination set
+- expect `ship: caution` on repos that do not look like a strong supported Next.js combination, even when no findings trigger
+- reserve `fail-on: caution` for repos where you expect the scanner to be evaluating one of the currently supported combinations
 
 ## Validation summary
 
 What has been validated so far:
 
 - local fixture validation for:
-  - clean strong-match case
-  - unsafe blocker case
-  - caution case
-  - weak-match case
-- public-repo validation on a small representative sample
+  - Next.js + Vercel
+  - Next.js + Supabase
+  - Next.js + Supabase + Vercel
+- public-repo validation on a small representative sample including:
+  - `vercel/example-marketplace-integration`
+  - `vercel/nextjs-portfolio-starter`
+  - `SarathAdhi/next-supabase-auth`
+  - `supabase-community/vercel-ai-chatbot`
+  - `Halo-Lab/next-supabase-todo`
+  - `imbhargav5/nextbase-nextjs-supabase-starter`
+  - `vercel/nextjs-subscription-payments`
+  - `KolbySisk/next-supabase-stripe-starter`
 - GitHub Action packaging structure
 - a real hosted GitHub Actions run on this repo
+- local hosted-style validation of the built Action path against supported-combination repos
 - JSON / Markdown output for local and CI-oriented use
-- local prototype fixtures for:
-  - a clean-ish Firebase experimental case
-  - an unsafe Firebase experimental case
 
 Hosted Action note:
 - the hosted Action path has now been exercised in a real remote run
-- this repo self-scan returned `ship: caution`, which is expected because this repo is a weak-match scanner repo, not a strong Next.js + Supabase + Vercel target-stack app
+- this repo self-scan returned `ship: caution`, which is expected because this repo is a scanner repo, not a strong supported Next.js combination
 - that result validates the Action path, not the security of this repo
-
-Experimental Firebase note:
-- the Firebase prototype has now also been checked against a small public-repo sample
-- public Firebase validation is still small and should be treated as early signal, not maturity
-- a clean-ish Firebase fixture currently returns `ship: caution`, not `ship: yes`, because the prototype is intentionally not treated as mature support yet
+- the built Action path has also now been rechecked locally against supported-combination repos to confirm that:
+  - Action-facing JSON and Markdown outputs still match the CLI behavior
+  - `fail-on: no` keeps review cautions from failing CI by default
+  - `recommendationBasis` and combination/support outputs remain usable for CI interpretation
 
 What is still incomplete:
 
 - public-repo validation sample size is still small
 - trust/scoring is still heuristic, not empirical proof
-- hosted validation has only been exercised on a weak-match self-scan so far, not yet on a strong-match production-like target repo
-- the Firebase prototype is intentionally not ready to call mature support
+- externally reviewable hosted validation has only been exercised on a weak-match self-scan so far, not yet on a strong-match production-like target repo
+- `nextjs-core` alone is still review-only rather than a supported clean-scan target
+- `vercel-pack` still contributes more to detection/context than to dedicated findings
 
-Firebase public-repo note:
-- a small public validation pass was run against repos including:
-  - `leerob/nextjs-vercel-firebase`
-  - `MartinXPN/nextjs-firebase-mui-starter`
-  - `valyndsilva/chatgpt-clone`
-  - `chirag-23/ChatGPT-Clone-Nextjs`
-- in that sample, Firebase profile detection was directionally useful, but the prototype stayed intentionally quiet and mostly returned `ship: caution` with no findings
-- one trust-tuning fix was made after validation: Vercel confidence no longer gets an extra boost from lockfiles or other package-manager artifacts
-- no clearly risky public Firebase repo with committed credential material was kept in the final sample, so unsafe Firebase validation is still mainly covered by the repo fixtures
+Current evidence nuance:
+- `Next.js + Vercel` remains the cleanest supported path
+- some public Next.js repos that are plausibly deployed on Vercel can still resolve as `nextjs-core` review-only if the repo itself does not expose concrete Vercel pack signals such as `vercel.json`, `@vercel/*`, or Vercel env usage
+- `Next.js + Supabase` and `Next.js + Supabase + Vercel` can reach either `ship: yes` or `ship: caution` on strong-match repos, depending on whether the scanner sees review-needed auth/RLS signals
+- stronger Supabase cautions on public repos are still possible on supported strong-match scans when repeated or higher-severity `SB003` findings trigger
+- a single `SB004` RLS review signal is now a softer caution than repeated route/action review findings
+- that means a Supabase caution should usually be read as a review request, not as automatic proof that the project is unsafe
 
 ## Support model
 
-This project uses a narrow support model for stack claims.
+This project uses a narrow modular support model.
 
-A stack should only be called supported when it has:
+The current active model is:
+- base profile: `nextjs-core`
+- optional packs: `supabase-pack`, `vercel-pack`
+- currently supported combinations:
+  - `Next.js + Vercel`
+  - `Next.js + Supabase`
+  - `Next.js + Supabase + Vercel`
+
+Support claims still require:
 - hosted GitHub Action validation in stack-relevant conditions
 - stable clean and risky fixture coverage
 - public-repo validation beyond one or two examples
@@ -221,33 +283,14 @@ A stack should only be called supported when it has:
 - acceptable false-positive / false-negative comfort for beginner-facing use
 - clear docs that explain what the scanner can and cannot prove
 
-Current Firebase decision:
-- `nextjs-firebase-vercel` remains experimental
-- Firebase is promising enough to continue validating
-- Firebase is not ready for a supported claim yet
-
-Why Firebase remains experimental:
-- strong evidence:
-  - clean and risky Firebase fixtures exist
-  - public-repo detection is directionally useful
-  - the Action path has been prepared for Firebase-oriented validation
-- weaker evidence:
-  - public Firebase validation breadth is still small
-  - blocker behavior is still mostly demonstrated by fixtures
-  - hosted Firebase validation is still narrower than the primary supported wedge
-- missing evidence:
-  - broader public risky-case coverage
-  - stronger hosted validation on Firebase-leaning targets with reviewable outcomes
-  - enough confidence to treat a clean Firebase scan as more than an experimental caution signal
-
 ## Public positioning
 
 This project should be described honestly as:
 
 - a heuristic pre-deploy helper
-- a narrow scanner led by Next.js + Supabase + Vercel
+- a narrow scanner led by Next.js core plus optional Supabase and Vercel packs
 - a review-support tool, not a proof-of-security tool
-- a project with one validated primary wedge and one very narrow experimental Firebase prototype
+- a project with one active modular Next.js-centered support model
 
 ## Who this is for
 
@@ -271,29 +314,48 @@ Current status:
 - fixture-based validation exists
 - small public-repo validation pass exists
 - hosted GitHub Actions run exists and produced the expected weak-match `ship: caution` self-scan result on this repo
-- an experimental Firebase profile prototype exists
-- a small public Firebase validation pass exists, and the current decision is to keep Firebase experimental but promising
+- the active product model is now `nextjs-core` plus `supabase-pack` and `vercel-pack`
+- the three minimum supported combinations are now explicit in the repo and fixtures
 
 Ready for:
-- basic public/open-source release, with risk
+- a narrow initial public/open-source release, with risk
 
 Not ready to claim:
 - proof of security
 - mature broad-framework support
 - deep runtime correctness validation
-- supported status for the Firebase prototype yet
+- broad provider support beyond the active Next.js-centered model
+
+Initial release boundary:
+- ship the CLI and composite GitHub Action as a narrow Next.js-centered pre-deploy helper
+- treat the supported combinations as:
+  - `Next.js + Vercel`: strongest current path
+  - `Next.js + Supabase`: supported, but more review-oriented
+  - `Next.js + Supabase + Vercel`: supported, but more review-oriented
+- keep `nextjs-core` alone review-only
+- keep the default Action policy conservative at `fail-on: no`
+- describe Supabase cautions as review requests, not as proof that auth or RLS is broken
+- do not claim strong externally reviewable hosted proof yet for a supported strong-match public repo
+
+## First Post-Release Validation Loop
+
+After the initial public release, keep the next loop narrow:
+
+- try to obtain one externally reviewable hosted Action run on a strong-match supported public repo
+- keep validating the two Supabase-bearing supported combinations on a small number of public repos
+- keep checking whether Vercel-only public repos that look deployment-relevant actually surface enough repo-local Vercel signals to be treated as supported combinations
+- keep public examples, workflow docs, and Action wording synchronized with actual scanner behavior
+- only add deeper `vercel-pack` findings if real validation shows a clear high-signal gap
 
 ## Development direction
 
 Near-term next steps:
 - exercise the hosted Action on a strong-match target-stack repo in addition to this weak-match self-scan
-- validate against more representative public repos
-- decide whether Firebase can meet the support criteria above, rather than expanding it just because a second wedge is attractive
+- harden and validate the three active supported combinations
 
-Internal v6 direction, not current support:
+Internal direction, not current support:
 - the current reusable core is the CLI, project loading, scoring, reporting, and rule-pack plumbing
-- the current validated wedge remains Next.js + Supabase + Vercel
-- the Firebase prototype is experimental and intentionally narrower than the first wedge
+- the active support model is Next.js core plus optional Supabase and Vercel packs
 
 Out of scope for now:
 - dashboard / SaaS expansion
@@ -304,4 +366,4 @@ Out of scope for now:
 
 ## License
 
-Add your preferred license here.
+No license has been selected yet.

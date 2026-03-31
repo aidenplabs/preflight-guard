@@ -17,13 +17,22 @@ jobs:
           node-version: "22"
           cache: "npm"
 
-      - name: Run preflight scanner
+      - name: Run preflight scanner (conservative default)
         id: preflight
         uses: ./
         with:
           path: .
           output-dir: .preflight-ci
-          fail-on: caution
+          fail-on: no
+
+      - name: Show recommendation summary
+        if: always()
+        run: |
+          echo "This example keeps review cautions non-blocking by default."
+          echo "ship=${{ steps.preflight.outputs.ship-recommendation }}"
+          echo "basis=${{ steps.preflight.outputs.recommendation-basis }}"
+          echo "combination=${{ steps.preflight.outputs.combination }}"
+          echo "support=${{ steps.preflight.outputs.support-status }}"
 
       - name: Upload reports
         if: always()
