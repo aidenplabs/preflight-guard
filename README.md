@@ -12,6 +12,9 @@ It is not proof that an app is safe.
 
 Looking for the GitHub Action version? See [preflight-guard-action](https://github.com/aidenplabs/preflight-guard-action).
 
+The GitHub Action is the distribution surface for GitHub workflow use.
+This core repo remains the main open-source engine and rule source.
+
 ## Who It Is For
 
 Use this project if you:
