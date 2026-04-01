@@ -10,6 +10,8 @@ It is for beginner builders, solo builders, students, and small teams using:
 It is written to be simple to read.
 It is not proof that an app is safe.
 
+Looking for the GitHub Action version? See [preflight-guard-action](https://github.com/aidenplabs/preflight-guard-action).
+
 ## Who It Is For
 
 Use this project if you:
