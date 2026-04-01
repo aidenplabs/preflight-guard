@@ -11,7 +11,10 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "scan": "tsx src/cli.ts scan",
-    "check": "tsc --noEmit -p tsconfig.json"
+    "check": "tsc --noEmit -p tsconfig.json",
+    "validate:execution-help": "node scripts/validate-execution-help-boundary.mjs",
+    "validate:curated": "node scripts/run-curated-validation.mjs",
+    "validate:curated:report": "node scripts/report-curated-validation.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.6.0",

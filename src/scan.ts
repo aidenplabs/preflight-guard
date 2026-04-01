@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { buildAiHandoffs, buildBlockerResponsePacks, buildExecutionPacks } from "./handoffs.js";
 import { buildProjectSummary, loadProjectFiles } from "./project.js";
 import { renderJsonReport, renderMarkdownReport, renderTerminalSummary, writeReports } from "./reporters.js";
 import { runRules } from "./rules.js";
@@ -50,6 +51,9 @@ export async function runScan(options: ScanOptions): Promise<{
   const summary = buildProjectSummary(rootPath, files.length);
   const stack = detectStack(files, signals);
   const findings = runRules({ rootPath, files, stack, signals });
+  const aiHandoffs = buildAiHandoffs({ summary, stack, findings }, signals, files);
+  const executionPacks = buildExecutionPacks({ summary, stack, findings }, signals);
+  const blockerResponsePacks = buildBlockerResponsePacks({ summary, stack, findings }, signals, files);
   const recommendationDecision = decideShipRecommendation(findings, stack);
   const shipRecommendation = recommendationDecision.recommendation;
   const defaultExitCode = getExitCode(shipRecommendation);
@@ -65,6 +69,9 @@ export async function runScan(options: ScanOptions): Promise<{
     summary,
     stack,
     findings,
+    aiHandoffs,
+    executionPacks,
+    blockerResponsePacks,
     shipRecommendation,
     recommendationBasis: recommendationDecision.basis,
     recommendationSummary: recommendationDecision.summary,

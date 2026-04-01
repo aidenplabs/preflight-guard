@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1",
   "summary": {
-    "scannedPath": "/demo/next-supabase-vercel-app",
+    "scannedPath": "/demo/next-supabase-vercel-auth-review",
     "scannedAt": "2026-03-29T00:00:00.000Z",
-    "fileCount": 75
+    "fileCount": 6
   },
   "stack": {
     "profile": "nextjs-core",
@@ -22,20 +22,16 @@
         "name": "Next.js",
         "detected": true,
         "confidence": "high",
-        "score": 8,
+        "score": 6,
         "maxScore": 8,
         "signals": [
           {
             "signal": "dependency",
-            "evidence": "package.json includes next@13.4.10"
-          },
-          {
-            "signal": "config",
-            "evidence": "next.config file found"
+            "evidence": "package.json includes next@15.2.1"
           },
           {
             "signal": "routing",
-            "evidence": "Next.js route files found (9)"
+            "evidence": "Next.js route files found (1)"
           },
           {
             "signal": "middleware",
@@ -52,7 +48,7 @@
         "signals": [
           {
             "signal": "dependency",
-            "evidence": "package.json includes Supabase dependency (^2.26.0)"
+            "evidence": "package.json includes Supabase dependency (2.49.1)"
           },
           {
             "signal": "folder",
@@ -76,8 +72,8 @@
         "maxScore": 6,
         "signals": [
           {
-            "signal": "dependency",
-            "evidence": "package.json includes Vercel package(s): @vercel/analytics, @vercel/og"
+            "signal": "config",
+            "evidence": "vercel.json found"
           },
           {
             "signal": "code",
@@ -92,34 +88,77 @@
     {
       "ruleId": "SB003",
       "title": "Sensitive route or server action may be missing an auth check",
-      "severity": "Medium",
-      "confidence": "review-needed",
+      "severity": "High",
+      "confidence": "likely",
       "category": "supabase-auth",
-      "filePath": "app/actions.ts",
+      "filePath": "src/app/api/admin/delete-user/route.ts",
       "explanation": "This server-side file looks sensitive, but the tool did not find a clear local auth guard or user validation inside it.",
       "whyItMatters": "Delete, update, admin, storage, invite, and billing flows often need explicit access control. Missing checks can expose data or privileged actions.",
       "minimumFix": "Review the handler or action and add a clear auth guard before sensitive work if one is actually missing.",
       "evidence": [
         "Server-side file contains mutation or privileged-action keywords.",
-        "Project has middleware files (middleware.ts), but middleware was not treated as proof that this route is protected."
-      ]
-    },
-    {
-      "ruleId": "SB003",
-      "title": "Sensitive route or server action may be missing an auth check",
-      "severity": "Medium",
-      "confidence": "review-needed",
-      "category": "supabase-auth",
-      "filePath": "app/api/chat/route.ts",
-      "explanation": "This server-side file looks sensitive, but the tool did not find a clear local auth guard or user validation inside it.",
-      "whyItMatters": "Delete, update, admin, storage, invite, and billing flows often need explicit access control. Missing checks can expose data or privileged actions.",
-      "minimumFix": "Review the handler or action and add a clear auth guard before sensitive work if one is actually missing.",
-      "evidence": [
-        "Server-side file contains mutation or privileged-action keywords.",
+        "Route or action path looks sensitive.",
         "Project has middleware files (middleware.ts), but middleware was not treated as proof that this route is protected."
       ]
     }
   ],
+  "aiHandoffs": [
+    {
+      "promptVersion": "1",
+      "findingKey": "SB003:src/app/api/admin/delete-user/route.ts",
+      "ruleId": "SB003",
+      "title": "Sensitive route or server action may be missing an auth check",
+      "combination": "nextjs-core+supabase-pack+vercel-pack",
+      "supportStatus": "supported",
+      "prompt": "You are helping with a narrow pre-deploy repair inside an existing Next.js repo.\nDo not do a broad rewrite.\nDetected combination: Next.js + Supabase + Vercel (nextjs-core+supabase-pack+vercel-pack)\nSupport status: supported\nFinding: SB003 Sensitive route or server action may be missing an auth check\nSeverity: High\nConfidence: likely\n\nCurrent diagnosis:\nThis server-side file looks sensitive, but the tool did not find a clear local auth guard or user validation inside it.\n\nWhy it matters:\nDelete, update, admin, storage, invite, and billing flows often need explicit access control. Missing checks can expose data or privileged actions.\n\nLikely files to inspect first:\n- src/app/api/admin/delete-user/route.ts\n- middleware.ts\n\nMinimum safe repair goal:\nDecide whether this sensitive route or server action already has a real local auth or authorization guard. If it does, make that guard explicit in the file. If it does not, add the smallest clear guard before the sensitive work happens.\n\nConstraints:\n- Do not replace the app's auth system.\n- Do not add a broad middleware or framework rewrite just to satisfy this finding.\n- Do not assume middleware alone proves route protection unless the file itself makes the authorization path clear.\n- Do not treat a client-side guard as proof that a server-side mutation path is protected.\n- Keep the change local to the flagged handler or action unless one shared helper is clearly the smallest safe fix.\n- If repo-visible evidence is still too weak to justify a safe edit, stop after diagnosis and explain what is missing instead of inventing a fix.\n- If repo context is insufficient, inspect the flagged files first and explain what auth path is actually in use before editing.\n\nExpected output from the coding assistant:\n- Brief diagnosis of the current auth path for the flagged route or action.\n- Exact files inspected.\n- Minimal change proposed or applied.\n- If no safe minimal edit is justified yet, say that explicitly instead of manufacturing one.\n- Why the new or clarified guard is the narrowest safe fix.\n- Any remaining uncertainty.\n\nValidation checklist after edits:\n- Confirm the sensitive route or action now contains a clear local auth or authorization step.\n- Confirm unauthenticated or unauthorized callers can no longer reach the sensitive server-side path by default.\n- Confirm the change does not silently broaden access or break the existing request flow.\n- Re-run the project's preflight scan and report whether SB003 cleared or still appears.\n\nDo not perform unrelated refactors. Stay tightly scoped to the flagged auth check path."
+    }
+  ],
+  "executionPacks": [
+    {
+      "findingKey": "SB003:src/app/api/admin/delete-user/route.ts",
+      "ruleId": "SB003",
+      "title": "Sensitive route or server action may be missing an auth check",
+      "filePath": "src/app/api/admin/delete-user/route.ts",
+      "combination": "nextjs-core+supabase-pack+vercel-pack",
+      "supportStatus": "supported",
+      "repairBrief": "Review the flagged server-side path and make the auth or authorization decision explicit where the sensitive work happens. Prefer a local guard in the handler or action, or one shared helper only if that helper is already the real auth path in this repo.",
+      "orderedFixSteps": [
+        "Inspect the flagged file and the nearest auth helper or middleware files to identify the current server-side auth path.",
+        "If a real local guard already exists indirectly, make that guard explicit near the sensitive mutation or route logic.",
+        "If no guard exists, add the smallest clear server-side auth or authorization check before the sensitive work happens.",
+        "Re-run preflight and confirm the guarded path is clearer and the finding is reduced or explained."
+      ],
+      "promptPack": [
+        {
+          "label": "diagnose-and-fix",
+          "intent": "Use this first to inspect the current auth path and make the narrowest safe edit.",
+          "prompt": "You are helping with a narrow pre-deploy repair inside an existing Next.js repo.\nDo not do a broad rewrite.\nDetected combination: Next.js + Supabase + Vercel (nextjs-core+supabase-pack+vercel-pack)\nSupport status: supported\nFinding: SB003 Sensitive route or server action may be missing an auth check\nSeverity: High\nConfidence: likely\n\nCurrent diagnosis:\nThis server-side file looks sensitive, but the tool did not find a clear local auth guard or user validation inside it.\n\nWhy it matters:\nDelete, update, admin, storage, invite, and billing flows often need explicit access control. Missing checks can expose data or privileged actions.\n\nLikely files to inspect first:\n- src/app/api/admin/delete-user/route.ts\n- middleware.ts\n\nMinimum safe repair goal:\nDecide whether this sensitive route or server action already has a real local auth or authorization guard. If it does, make that guard explicit in the file. If it does not, add the smallest clear guard before the sensitive work happens.\n\nConstraints:\n- Do not replace the app's auth system.\n- Do not add a broad middleware or framework rewrite just to satisfy this finding.\n- Do not assume middleware alone proves route protection unless the file itself makes the authorization path clear.\n- Do not treat a client-side guard as proof that a server-side mutation path is protected.\n- Keep the change local to the flagged handler or action unless one shared helper is clearly the smallest safe fix.\n- If repo-visible evidence is still too weak to justify a safe edit, stop after diagnosis and explain what is missing instead of inventing a fix.\n- If repo context is insufficient, inspect the flagged files first and explain what auth path is actually in use before editing.\n\nExpected output from the coding assistant:\n- Brief diagnosis of the current auth path for the flagged route or action.\n- Exact files inspected.\n- Minimal change proposed or applied.\n- If no safe minimal edit is justified yet, say that explicitly instead of manufacturing one.\n- Why the new or clarified guard is the narrowest safe fix.\n- Any remaining uncertainty.\n\nValidation checklist after edits:\n- Confirm the sensitive route or action now contains a clear local auth or authorization step.\n- Confirm unauthenticated or unauthorized callers can no longer reach the sensitive server-side path by default.\n- Confirm the change does not silently broaden access or break the existing request flow.\n- Re-run the project's preflight scan and report whether SB003 cleared or still appears.\n\nDo not perform unrelated refactors. Stay tightly scoped to the flagged auth check path."
+        },
+        {
+          "label": "verify-after-edit",
+          "intent": "Use this after an edit to confirm the route is actually guarded without broadening the change.",
+          "prompt": "You are reviewing a narrow post-edit verification pass inside an existing Next.js repo.\nDo not introduce new rewrites.\nDetected combination: Next.js + Supabase + Vercel (nextjs-core+supabase-pack+vercel-pack)\nSupport status: supported\nFinding: SB003 Sensitive route or server action may be missing an auth check\n\nFiles to verify first:\n- src/app/api/admin/delete-user/route.ts\n- middleware.ts\n\nVerification focus:\nConfirm that a real server-side auth or authorization check is visible in or immediately before the flagged sensitive path.\n\nChecklist:\n- Confirm the sensitive route or action now contains a clear local auth or authorization step.\n- Confirm unauthenticated or unauthorized callers can no longer reach the sensitive server-side path by default.\n- Confirm the change does not silently broaden access or break the existing request flow.\n- Re-run the project's preflight scan and report whether SB003 cleared or still appears.\n\nExpected output:\n- Exact files re-checked.\n- Whether the narrow fix really addressed the finding.\n- Any remaining uncertainty or missing evidence.\n\nDo not turn this into a broad audit. Stay focused on the original finding."
+        }
+      ],
+      "verificationChecklist": [
+        "Confirm the sensitive route or action now contains a clear local auth or authorization step.",
+        "Confirm unauthenticated or unauthorized callers can no longer reach the sensitive server-side path by default.",
+        "Confirm the change does not silently broaden access or break the existing request flow.",
+        "Re-run the project's preflight scan and report whether SB003 cleared or still appears."
+      ],
+      "safeFixGuidance": [
+        "Prefer a local server-side guard in the flagged file or a clearly reused shared helper that already exists in the repo.",
+        "Keep the change close to the sensitive mutation, delete, admin, billing, or storage path.",
+        "If the file already has a real auth step, clarifying it is safer than rewriting the auth system."
+      ],
+      "riskyFixGuidance": [
+        "Do not treat middleware alone as proof that the flagged route or action is protected.",
+        "Do not rely on a client-side check to protect a server-side mutation path.",
+        "Do not replace the app's auth system or add a broad framework rewrite just to clear this finding."
+      ]
+    }
+  ],
+  "blockerResponsePacks": [],
   "shipRecommendation": "caution",
   "recommendationBasis": "elevated-review-findings",
   "recommendationSummary": "Multiple or stronger review-needed findings triggered. This caution is more than a weak review note and should be treated as a meaningful pre-deploy stop-and-review signal.",

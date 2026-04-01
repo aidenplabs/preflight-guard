@@ -22,6 +22,7 @@ export type ProfileFit = "strong-match" | "partial-match" | "weak-match";
 
 export type RecommendationBasis =
   | "clean-supported-scan"
+  | "blocker-findings"
   | "review-findings"
   | "elevated-review-findings"
   | "insufficient-supported-confidence"
@@ -87,6 +88,58 @@ export interface Finding {
   evidence?: string[];
 }
 
+export interface AiHandoffPrompt {
+  promptVersion: "1";
+  findingKey: string;
+  ruleId: string;
+  title: string;
+  combination: string;
+  supportStatus: ProfileSupportStatus;
+  prompt: string;
+}
+
+export interface ExecutionPackPrompt {
+  label: string;
+  intent: string;
+  prompt: string;
+}
+
+export interface ExecutionPack {
+  findingKey: string;
+  ruleId: "SB003" | "SB004";
+  title: string;
+  filePath: string;
+  combination: string;
+  supportStatus: ProfileSupportStatus;
+  repairBrief: string;
+  orderedFixSteps: string[];
+  promptPack: ExecutionPackPrompt[];
+  verificationChecklist: string[];
+  safeFixGuidance: string[];
+  riskyFixGuidance: string[];
+}
+
+export interface BlockerResponsePackPrompt {
+  label: string;
+  intent: string;
+  prompt: string;
+}
+
+export interface BlockerResponsePack {
+  findingKey: string;
+  ruleId: "SB001" | "SB002" | "ENV002";
+  title: string;
+  filePath: string;
+  combination: string;
+  supportStatus: ProfileSupportStatus;
+  blockerBrief: string;
+  immediateContainmentPriorities: string[];
+  exactFileInspectionTargets: string[];
+  promptPack: BlockerResponsePackPrompt[];
+  verificationChecklist: string[];
+  uncertaintyEscalationNote: string;
+}
+
 export interface RuleContext {
   rootPath: string;
   files: ProjectFile[];
@@ -118,6 +171,9 @@ export interface ScanResult {
   summary: ProjectSummary;
   stack: StackDetectionResult;
   findings: Finding[];
+  aiHandoffs: AiHandoffPrompt[];
+  executionPacks: ExecutionPack[];
+  blockerResponsePacks: BlockerResponsePack[];
   shipRecommendation: "yes" | "caution" | "no";
   recommendationBasis: RecommendationBasis;
   recommendationSummary: string;

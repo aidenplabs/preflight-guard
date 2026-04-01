@@ -17,6 +17,9 @@ outputs:
   ship-recommendation:
     description: "Final ship recommendation from the JSON report."
     value: ${{ steps.preflight_outputs.outputs.ship_recommendation }}
+  recommendation-summary:
+    description: "Plain-language recommendation summary from the JSON report."
+    value: ${{ steps.preflight_outputs.outputs.recommendation_summary }}
   stack-confidence:
     description: "Overall stack confidence from the JSON report."
     value: ${{ steps.preflight_outputs.outputs.stack_confidence }}
@@ -75,12 +78,14 @@ runs:
         JSON_PATH="${{ steps.run_preflight.outputs.json_path }}"
         MARKDOWN_PATH="${{ steps.run_preflight.outputs.markdown_path }}"
         SHIP_RECOMMENDATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.shipRecommendation);" "$JSON_PATH")
+        RECOMMENDATION_SUMMARY=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.recommendationSummary);" "$JSON_PATH")
         RECOMMENDATION_BASIS=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.recommendationBasis);" "$JSON_PATH")
         STACK_CONFIDENCE=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.overallConfidence);" "$JSON_PATH")
         PROFILE_FIT=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.profileFit);" "$JSON_PATH")
         SUPPORT_STATUS=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.supportStatus);" "$JSON_PATH")
         COMBINATION=$(node -e "const fs=require('fs');const p=process.argv[1];const d=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(d.stack.combination);" "$JSON_PATH")
         echo "ship_recommendation=$SHIP_RECOMMENDATION" >> "$GITHUB_OUTPUT"
+        echo "recommendation_summary=$RECOMMENDATION_SUMMARY" >> "$GITHUB_OUTPUT"
         echo "recommendation_basis=$RECOMMENDATION_BASIS" >> "$GITHUB_OUTPUT"
         echo "stack_confidence=$STACK_CONFIDENCE" >> "$GITHUB_OUTPUT"
         echo "profile_fit=$PROFILE_FIT" >> "$GITHUB_OUTPUT"
@@ -88,6 +93,22 @@ runs:
         echo "combination=$COMBINATION" >> "$GITHUB_OUTPUT"
         echo "json_report_path=$JSON_PATH" >> "$GITHUB_OUTPUT"
         echo "markdown_report_path=$MARKDOWN_PATH" >> "$GITHUB_OUTPUT"
-        if [ -n "$GITHUB_STEP_SUMMARY" ] && [ -f "$MARKDOWN_PATH" ]; then
-          cat "$MARKDOWN_PATH" >> "$GITHUB_STEP_SUMMARY"
+        if [ -n "$GITHUB_STEP_SUMMARY" ]; then
+          {
+            echo "## Preflight Summary"
+            echo ""
+            echo "- ship: \`$SHIP_RECOMMENDATION\`"
+            echo "- summary: $RECOMMENDATION_SUMMARY"
+            echo "- basis: \`$RECOMMENDATION_BASIS\`"
+            echo "- combination: \`$COMBINATION\`"
+            echo "- support status: \`$SUPPORT_STATUS\`"
+            echo "- stack confidence: \`$STACK_CONFIDENCE\`"
+            echo "- profile fit: \`$PROFILE_FIT\`"
+            echo ""
+            echo "Full reports stay in the generated Markdown and JSON files."
+            echo "- markdown report: \`$MARKDOWN_PATH\`"
+            echo "- json report: \`$JSON_PATH\`"
+            echo ""
+            echo "This summary is heuristic and decision-oriented. It is not proof of security."
+          } >> "$GITHUB_STEP_SUMMARY"
         fi

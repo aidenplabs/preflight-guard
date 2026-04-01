@@ -11,15 +11,24 @@ export interface RecommendationDecision {
 }
 
 export function decideShipRecommendation(findings: Finding[], stack: StackDetectionResult): RecommendationDecision {
-  const blockerCount = findings.filter((finding) => finding.severity === "Blocker" && finding.confidence === "confirmed").length;
+  const confirmedBlockerCount = findings.filter((finding) => finding.severity === "Blocker" && finding.confidence === "confirmed").length;
+  const blockerCount = findings.filter((finding) => finding.severity === "Blocker").length;
   const highCount = findings.filter((finding) => finding.severity === "High").length;
   const mediumCount = findings.filter((finding) => finding.severity === "Medium").length;
 
-  if (blockerCount > 0) {
+  if (confirmedBlockerCount > 0) {
     return {
       recommendation: "no",
       basis: "confirmed-blocker-findings",
       summary: "The scanner found at least one confirmed blocker-level issue. Treat this as a strong no-ship signal until the finding is fixed or disproved."
+    };
+  }
+
+  if (blockerCount > 0) {
+    return {
+      recommendation: "no",
+      basis: "blocker-findings",
+      summary: "The scanner found at least one blocker-level issue. Treat this as a no-ship signal until the finding is fixed or disproved."
     };
   }
 

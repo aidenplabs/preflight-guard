@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Finding, ScanResult, Severity } from "./types.js";
+import type { BlockerResponsePack, ExecutionPack, Finding, ScanResult, Severity } from "./types.js";
 
 const SEVERITY_ORDER: Severity[] = ["Blocker", "High", "Medium"];
 
@@ -34,6 +34,86 @@ function formatFindingMarkdown(finding: Finding): string {
   return lines.join("\n");
 }
 
+function formatExecutionPackMarkdown(pack: ExecutionPack): string {
+  const sections = [
+    `### ${pack.ruleId} ${pack.title}`,
+    `- Finding key: \`${pack.findingKey}\``,
+    `- File: \`${pack.filePath}\``,
+    `- Combination: \`${pack.combination}\``,
+    `- Support status: \`${pack.supportStatus}\``,
+    "",
+    "#### Repair Brief",
+    pack.repairBrief,
+    "",
+    "#### Ordered Fix Steps",
+    ...pack.orderedFixSteps.map((step, index) => `${index + 1}. ${step}`),
+    "",
+    "#### Copy-Paste Prompt Pack"
+  ];
+
+  for (const prompt of pack.promptPack) {
+    sections.push("");
+    sections.push(`##### ${prompt.label}`);
+    sections.push(`- Intent: ${prompt.intent}`);
+    sections.push("");
+    sections.push("```text");
+    sections.push(prompt.prompt);
+    sections.push("```");
+  }
+
+  sections.push("");
+  sections.push("#### Verification Checklist");
+  sections.push(...pack.verificationChecklist.map((item) => `- ${item}`));
+  sections.push("");
+  sections.push("#### Safe Fix Guidance");
+  sections.push(...pack.safeFixGuidance.map((item) => `- ${item}`));
+  sections.push("");
+  sections.push("#### Risky Fix Guidance");
+  sections.push(...pack.riskyFixGuidance.map((item) => `- ${item}`));
+
+  return sections.join("\n");
+}
+
+function formatBlockerResponsePackMarkdown(pack: BlockerResponsePack): string {
+  const sections = [
+    `### ${pack.ruleId} ${pack.title}`,
+    `- Finding key: \`${pack.findingKey}\``,
+    `- File: \`${pack.filePath}\``,
+    `- Combination: \`${pack.combination}\``,
+    `- Support status: \`${pack.supportStatus}\``,
+    "",
+    "#### Blocker Brief",
+    pack.blockerBrief,
+    "",
+    "#### Immediate Containment Priorities",
+    ...pack.immediateContainmentPriorities.map((item) => `- ${item}`),
+    "",
+    "#### Exact File Inspection Targets",
+    ...pack.exactFileInspectionTargets.map((item) => `- ${item}`),
+    "",
+    "#### Diagnosis / Containment Prompt Pack"
+  ];
+
+  for (const prompt of pack.promptPack) {
+    sections.push("");
+    sections.push(`##### ${prompt.label}`);
+    sections.push(`- Intent: ${prompt.intent}`);
+    sections.push("");
+    sections.push("```text");
+    sections.push(prompt.prompt);
+    sections.push("```");
+  }
+
+  sections.push("");
+  sections.push("#### Verification Checklist");
+  sections.push(...pack.verificationChecklist.map((item) => `- ${item}`));
+  sections.push("");
+  sections.push("#### Explicit Uncertainty / Escalation Note");
+  sections.push(pack.uncertaintyEscalationNote);
+
+  return sections.join("\n");
+}
+
 export function renderTerminalSummary(result: ScanResult): string {
   const blockerCount = result.findings.filter((finding) => finding.severity === "Blocker").length;
   const highCount = result.findings.filter((finding) => finding.severity === "High").length;
@@ -63,6 +143,7 @@ export function renderTerminalSummary(result: ScanResult): string {
     `Ship recommendation: ${result.shipRecommendation}`,
     `Recommendation basis: ${result.recommendationBasis}`,
     `Recommendation note: ${result.recommendationSummary}`,
+    `AI handoff prompts: ${result.aiHandoffs.length}`,
     "",
     ...findingLines
   ].join("\n");
@@ -122,6 +203,52 @@ export function renderMarkdownReport(result: ScanResult): string {
   sections.push(`- Ship: **${result.shipRecommendation}**`);
   sections.push(`- Recommendation basis: \`${result.recommendationBasis}\``);
   sections.push(`- Recommendation note: ${result.recommendationSummary}`);
+
+  if (result.aiHandoffs.length > 0) {
+    sections.push("");
+    sections.push("## AI Handoff Prompts");
+    sections.push("These prompts are copy-paste helpers for a coding assistant.");
+    sections.push("They do not guarantee a safe or correct patch, and they should not be treated as auto-remediation.");
+
+    for (const handoff of result.aiHandoffs) {
+      sections.push("");
+      sections.push(`### ${handoff.ruleId} ${handoff.title}`);
+      sections.push(`- Finding key: \`${handoff.findingKey}\``);
+      sections.push(`- Prompt version: \`${handoff.promptVersion}\``);
+      sections.push(`- Combination: \`${handoff.combination}\``);
+      sections.push(`- Support status: \`${handoff.supportStatus}\``);
+      sections.push("");
+      sections.push("```text");
+      sections.push(handoff.prompt);
+      sections.push("```");
+    }
+  }
+
+  if (result.executionPacks.length > 0) {
+    sections.push("");
+    sections.push("## Execution Help Packs");
+    sections.push("These structured execution-help blocks are currently generated only for supported SB003 and SB004 findings.");
+    sections.push("They are more guided than the basic AI handoff prompts, but they are still not auto-remediation and they do not guarantee a safe or correct patch.");
+
+    for (const pack of result.executionPacks) {
+      sections.push("");
+      sections.push(formatExecutionPackMarkdown(pack));
+    }
+  }
+
+  if (result.blockerResponsePacks.length > 0) {
+    sections.push("");
+    sections.push("## Blocker Response Packs");
+    sections.push("These reduced blocker-response blocks are currently generated only for supported SB001, SB002, and ENV002 findings.");
+    sections.push("They stay diagnosis-first, containment-first, and verify-before-closure.");
+    sections.push("They are intentionally narrower than the SB003/SB004 execution-help packs and they do not present a confident repair flow.");
+
+    for (const pack of result.blockerResponsePacks) {
+      sections.push("");
+      sections.push(formatBlockerResponsePackMarkdown(pack));
+    }
+  }
+
   sections.push("");
   sections.push("## Limitations");
   for (const limitation of result.limitations) {

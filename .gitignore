@@ -1,10 +1,18 @@
-dist/
+# dependencies
 node_modules/
 
-preflight-report.json
-preflight-report.md
-.preflight-ci/
+# build output
+dist/
+coverage/
+*.tsbuildinfo
 
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# local environment files
 .env
 .env.local
 .env.development
@@ -12,25 +20,42 @@ preflight-report.md
 .env.test
 .env*.local
 
-.DS_Store
+# generated preflight outputs and proof work
+preflight-report.json
+preflight-report.md
+.preflight-ci/
+.preflight-curated/
+.preflight-*/
+tmp-v*-proof
+tmp-v*-proof-work
 
-AGENTS.md
-rules.md
-
+# local internal workflow / planning files
 .codex/
-context.md
 codex.md
+context.md
+rules.md
 v*.md
-
-# local-only internal workflow / planning clutter
 notes/
 scratch/
 tmp/
+
+# editor / OS clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# repo-local agent instructions
+AGENTS.md
 
 # frozen experimental legacy files that are not part of the active public product
 .github/workflows/firebase-experimental-validation.yml
 .github/workflows/clerk-experimental-validation.yml
 fixtures/v7/
 fixtures/v14/
+fixtures/v31/
 src/rule-packs/nextjs-firebase-vercel.ts
 src/rule-packs/nextjs-clerk-vercel.ts

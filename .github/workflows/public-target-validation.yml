@@ -51,6 +51,7 @@ jobs:
           fi
 
           echo "repository=$REPO" >> "$GITHUB_OUTPUT"
+          echo "repository_slug=${REPO/\//-}" >> "$GITHUB_OUTPUT"
           echo "clone_url=https://github.com/$REPO.git" >> "$GITHUB_OUTPUT"
           echo "target_dir=$RUNNER_TEMP/preflight-public-target" >> "$GITHUB_OUTPUT"
 
@@ -103,7 +104,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: preflight-public-target-reports
+          name: preflight-public-target-${{ steps.resolve.outputs.repository_slug }}-reports
           path: |
             .preflight-ci/preflight-report.json
             .preflight-ci/preflight-report.md

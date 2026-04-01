@@ -63,17 +63,17 @@ function suspiciousSupabaseClientKeyRule(context: RuleContext): Finding[] {
 
     findings.push({
       ruleId: "SB002",
-      title: "Suspicious privileged Supabase key usage in browser-reachable client setup",
+      title: "Privileged non-public Supabase credential used in browser-reachable client setup",
       severity: "Blocker",
       confidence: "likely",
       category: "supabase-auth",
       filePath: file.path,
-      explanation: "A browser-reachable file appears to initialize a Supabase client with a privileged environment variable.",
-      whyItMatters: "Client-side Supabase code should normally use public URL and anon key values only. Privileged keys in browser code can expose admin access.",
+      explanation: "A browser-reachable file appears to initialize a Supabase client with a non-public Supabase credential.",
+      whyItMatters: "Browser-side Supabase code should normally use public URL and anon key values only. Non-public Supabase credentials in that client path can expose privileged access.",
       minimumFix: "Use only public anon credentials in browser code and move privileged Supabase operations behind server-only code paths.",
       evidence: [
         "Browser-reachable file creates a Supabase client.",
-        "The same file references a non-public Supabase-related env value."
+        "The same file references a non-public Supabase credential env value."
       ]
     });
   }
