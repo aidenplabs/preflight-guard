@@ -38,8 +38,8 @@ jobs:
           path: .
           output-dir: .preflight-ci
           fail-on: no
-...
 
+```
 ## Useful Inputs
 
 - `path`
