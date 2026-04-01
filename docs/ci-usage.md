@@ -1,16 +1,20 @@
 # CI Usage
 
-This repo includes a composite GitHub Action in `action.yml`.
+For GitHub workflow use, use the separate action repo:
+
+- `aidenplabs/preflight-guard-action`
+
+This core repo remains the main open-source engine and rule source.
 
 ## What it does
 
-The action:
-- installs dependencies
-- builds the CLI
-- runs the scan
+The GitHub Action:
+- installs and builds its runtime from the action repo
+- scans the checked-out workflow repository
 - writes Markdown and JSON reports
 - exposes useful outputs for later steps
-- writes a compact job summary
+- writes a compact GitHub job summary first
+- appends the generated full Markdown report when available
 
 ## Basic example
 
@@ -28,28 +32,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
       - name: Run preflight
-        uses: ./
+        uses: aidenplabs/preflight-guard-action@v1
         with:
           path: .
           output-dir: .preflight-ci
           fail-on: no
-```
 
-## Useful inputs
+## Useful Inputs
 
 - `path`
-  - repo path to scan
+  - path inside the checked-out workflow repository to scan
 - `output-dir`
-  - where the reports should be written
+  - directory inside the checked-out workflow repository where reports should be written
 - `fail-on`
   - `never`, `no`, or `caution`
 
-## Useful outputs
+## Useful Outputs
 
 - `ship-recommendation`
 - `recommendation-summary`
@@ -60,8 +59,18 @@ jobs:
 - `profile-fit`
 - `json-report-path`
 - `markdown-report-path`
+- `exit-code`
 
-## Important limit
+## What To Expect
 
-The GitHub Action is still only a heuristic review step.
+When the action runs, you should expect:
+
+1. A GitHub job summary with a compact recommendation section first
+2. The generated full Markdown report appended underneath when available
+3. A Markdown report at `OUTPUT_DIR/preflight-report.md`
+4. A JSON report at `OUTPUT_DIR/preflight-report.json`
+
+## Important Limit
+
+The GitHub Action is still only a heuristic review step.  
 It is not proof that an app is safe to deploy.
