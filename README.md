@@ -172,14 +172,20 @@ It is not auto-remediation.
 
 ## GitHub Action Usage
 
-This repo includes a composite GitHub Action in [action.yml](action.yml).
+For GitHub workflow use, use the separate action repo:
 
-At a high level it:
-- installs dependencies
-- builds the CLI
-- runs the scan
-- exposes the recommendation and report paths as Action outputs
-- writes a compact job summary
+- [preflight-guard-action](https://github.com/aidenplabs/preflight-guard-action)
+
+That repo is the GitHub Action distribution surface.
+This core repo remains the main open-source engine and rule source.
+
+At a high level, the GitHub Action:
+- installs and builds its runtime from the action repo
+- scans the checked-out workflow repository
+- writes Markdown and JSON reports
+- exposes recommendation and report-path outputs
+- writes a compact GitHub job summary first
+- appends the generated full Markdown report when available
 
 For a beginner-friendly setup example, see [docs/ci-usage.md](docs/ci-usage.md).
 
