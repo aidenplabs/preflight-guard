@@ -10,6 +10,8 @@ It is for beginner builders, solo builders, students, and small teams using:
 It is written to be simple to read.
 It is not proof that an app is safe.
 
+It was built for a simple reason: more people now build and ship quickly on common stacks like Next.js, Supabase, and Vercel, often with code assembled from docs, examples, and AI-assisted workflows. When people move fast, security-related mistakes and risky patterns can get overlooked before deployment. The goal is to give people one more practical review step before launch and help them catch at least some of those issues earlier.
+
 Looking for the GitHub Action version? See [preflight-guard-action](https://github.com/aidenplabs/preflight-guard-action).
 
 The GitHub Action is the distribution surface for GitHub workflow use.
@@ -19,15 +21,13 @@ This core repo remains the main open-source engine and rule source.
 
 Use this project if you:
 - are building a Next.js app quickly
-- are using Supabase and/or Vercel
-- want a simple pre-launch red-flag check
+- are using Supabase and/or Vercel in a supported setup
+- want one more practical pre-launch check
 - want plain-language output instead of a large security report
 
-This project is especially useful when code has been assembled quickly from tutorials, snippets, or AI-generated output.
+This project is especially useful when code has been assembled quickly from tutorials, snippets, examples, or AI-assisted workflows.
 
 ## What It Checks
-
-The scanner is intentionally narrow.
 
 Today it looks for a small set of risky patterns such as:
 - browser-side Supabase client setup using a non-public credential
@@ -176,7 +176,7 @@ For GitHub workflow use, use the separate action repo:
 
 - [preflight-guard-action](https://github.com/aidenplabs/preflight-guard-action)
 
-That repo is the GitHub Action distribution surface.
+That repo is the GitHub Action and Marketplace distribution surface.
 This core repo remains the main open-source engine and rule source.
 
 At a high level, the GitHub Action:
@@ -230,7 +230,7 @@ Current roadmap, in simple terms:
 3. Keep validating the current findings and helper text.
 4. Keep the repo clean for open-source use.
 5. Revisit public proof surfacing only after the current proof material is strong enough.
-6. Consider a separate GitHub Action repo later only if it becomes useful.
+6. Keep the separate GitHub Action distribution surface simple and aligned with the core engine.
 
 Not on the current roadmap:
 - paid plans
