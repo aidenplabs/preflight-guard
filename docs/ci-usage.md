@@ -19,25 +19,34 @@ The GitHub Action:
 ## Basic example
 
 ```yaml
-name: preflight
+name: Preflight Guard
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   preflight:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Run preflight
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run preflight guard
+        id: preflight
         uses: aidenplabs/preflight-guard-action@v1
         with:
           path: .
           output-dir: .preflight-ci
           fail-on: no
+
+      - name: Upload preflight reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preflight-report
+          path: .preflight-ci/
 
 ```
 ## Useful Inputs
@@ -68,8 +77,8 @@ When the action runs, you should expect:
 
 1. A GitHub job summary with a compact recommendation section first
 2. The generated full Markdown report appended underneath when available
-3. A Markdown report at `OUTPUT_DIR/preflight-report.md`
-4. A JSON report at `OUTPUT_DIR/preflight-report.json`
+3. A Markdown report at `.preflight-ci/preflight-report.md` by default
+4. A JSON report at `.preflight-ci/preflight-report.json` by default
 
 ## Important Limit
 
